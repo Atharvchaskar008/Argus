@@ -143,3 +143,21 @@ def fetch_repo_metadata(repo_url: str) -> dict:
 def fetch_contributors_count(owner: str, repo: str) -> int:
     intel = fetch_full_github_intel(f"https://github.com/{owner}/{repo}")
     return intel.get("contributors_count", 0)
+
+
+def fetch_contributors(repo_url: str, max_count: int = 10) -> list[dict]:
+    """Fetch top contributors from GitHub API."""
+    parsed = parse_github_url(repo_url)
+    if not parsed:
+        return []
+    owner, repo = parsed
+    url = f"https://api.github.com/repos/{owner}/{repo}/contributors?per_page={max_count}"
+    try:
+        data = _get(url)
+        return [
+            {"login": c.get("login"), "contributions": c.get("contributions"), "avatar_url": c.get("avatar_url")}
+            for c in data if isinstance(c, dict)
+        ]
+    except Exception as exc:
+        log.warning("Contributors fetch failed: %s", exc)
+        return []

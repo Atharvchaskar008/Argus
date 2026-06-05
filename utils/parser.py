@@ -41,14 +41,19 @@ def scan_repo(repo_path: str) -> list:
     files = []
     skip = {".git", "__pycache__", "node_modules", ".venv", "venv", "dist", "build"}
 
-    for path in root.rglob("*.py"):
-        if any(part in skip for part in path.parts):
-            continue
-        data = parse_python_file(path)
-        try:
-            data["path"] = str(path.relative_to(root)).replace("\\", "/")
-        except ValueError:
-            pass
-        files.append(data)
+    for ext in ("*.py", "*.js", "*.ts"):
+        for path in root.rglob(ext):
+            if any(part in skip for part in path.parts):
+                continue
+            if path.suffix == ".py":
+                data = parse_python_file(path)
+                data["language"] = "python"
+            else:
+                data = {"imports": [], "language": "javascript"}
+            try:
+                data["path"] = str(path.relative_to(root)).replace("\\", "/")
+            except ValueError:
+                data.setdefault("path", str(path).replace("\\", "/"))
+            files.append(data)
 
     return files

@@ -55,6 +55,27 @@ PATTERNS = [
         "Potentially dangerous import",
         "Review usage and restrict to trusted inputs.",
     ),
+    (
+        "xss_risk",
+        "medium",
+        re.compile(r"(?i)innerHTML\s*="),
+        "Potential XSS via innerHTML",
+        "Use textContent or sanitize HTML.",
+    ),
+    (
+        "open_redirect",
+        "medium",
+        re.compile(r"(?i)redirect\([^)]*request\.(args|form|get)"),
+        "Open redirect risk",
+        "Validate redirect targets against an allowlist.",
+    ),
+    (
+        "debug_mode",
+        "low",
+        re.compile(r"(?i)(DEBUG\s*=\s*True|app\.run\([^)]*debug\s*=\s*True)"),
+        "Debug mode enabled in production",
+        "Disable DEBUG in production configuration.",
+    ),
 ]
 
 FIX_TEMPLATES = {
