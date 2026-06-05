@@ -463,13 +463,10 @@ def run_analysis(session_id: str, repo_url: str, execution_mode: str = "autonomo
         snapshot.finalize_session(session_id, "completed")
 
     except Exception as exc:
-        _log(session_id, f"Orchestration error: {exc}", "error", "MonitorAgent")
-        _complete_with_fallback(
-            session_id,
-            repo_url,
-            github,
-            f"Orchestration error: {exc}",
-        )
+        import traceback
+        _log(session_id, f"Fatal orchestration error: {exc}", "error", "MonitorAgent")
+        _log(session_id, traceback.format_exc()[-500:], "error", "MonitorAgent")
+        snapshot.finalize_session(session_id, "failed")
 
 
 def _build_llm_context(github, files, findings, graph_data, readme, code_quality, maintainability) -> str:
