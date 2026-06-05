@@ -13,7 +13,7 @@ import uuid
 from config import AGENT_IDS, MAX_REPO_FILES
 from utils import snapshot
 from utils.code_quality import analyze_code_quality
-from utils.github_api import fetch_full_github_intel
+from utils.github_api import fetch_contributors, fetch_full_github_intel
 from utils.graph_builder import build_dependency_graph, impact_analysis
 from utils.llm_client import chat as llm_chat
 from utils.llm_client import generate as llm_generate
@@ -225,6 +225,10 @@ def run_analysis(session_id: str, repo_url: str, execution_mode: str = "autonomo
                 "contributors": github.get("contributors", []),
             },
         )
+        contributors = fetch_contributors(repo_url)
+        snapshot.merge_session(session_id, {"contributors": contributors})
+        if contributors:
+            _log(session_id, f"Top contributor: {contributors[0]['login']} ({contributors[0]['contributions']} commits)", agent="DependencyAgent")
         if github.get("error"):
             _log(session_id, f"GitHub API warning: {github['error']}", "warn", "DependencyAgent")
         else:
