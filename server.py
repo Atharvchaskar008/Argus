@@ -135,8 +135,13 @@ def reposense_mark():
 @app.route("/sessions")
 @app.route("/sessions/")
 def get_sessions():
-    sessions = snapshot.list_sessions()
-    return jsonify([{"id": s["id"], "status": s["status"]} for s in sessions])
+    sessions = []
+    for p in snapshot.OUTPUTS_DIR.glob("*_live.json"):
+        sid = p.name.replace("_live.json", "")
+        summary = snapshot.get_session_summary(sid)
+        if summary:
+            sessions.append(summary)
+    return jsonify(sessions)
 
 
 @app.route("/health")
@@ -273,6 +278,25 @@ def get_cve_route(session_id):
     if not session:
         return jsonify([])
     return jsonify(session.get("cve_findings", []))
+
+
+@app.route("/session/<session_id>", methods=["DELETE"])
+def delete_session_route(session_id):
+    if not snapshot.get_session(session_id):
+        return jsonify({"error": "session not found"}), 404
+    snapshot.delete_session(session_id)
+    return jsonify({"deleted": True})
+
+
+import atexit
+from utils import snapshot as _snap
+
+def _startup_cleanup():
+    n = _snap.cleanup_old_sessions()
+    if n:
+        log.info("Cleaned up %d stale session files", n)
+
+threading.Thread(target=_startup_cleanup, daemon=True).start()
 
 
 if __name__ == "__main__":
