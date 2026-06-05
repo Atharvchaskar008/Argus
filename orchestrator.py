@@ -285,15 +285,31 @@ def run_analysis(session_id: str, repo_url: str, execution_mode: str = "autonomo
         _log(session_id, f"Discovered {len(files)} Python modules", agent="DependencyAgent")
 
         graph_data = build_dependency_graph(files, repo_path)
-        snapshot.merge_session(
-            session_id,
-            {
-                "graph": {
-                    "nodes": graph_data.get("nodes", []),
-                    "edges": graph_data.get("edges", []),
+        
+        from graph.mission_engine import MissionEngine
+        try:
+            engine = MissionEngine(session_id, repo_url, execution_mode)
+            for n in graph_data.get("nodes", []):
+                node = engine.graph.add("ModuleNode", **n)
+                del engine.graph.nodes[node.id]
+                node.id = n["id"]
+                engine.graph.nodes[node.id] = node
+            for e in graph_data.get("edges", []):
+                engine.graph.link(e.get("type", "imports_edge"), e["source"], e["target"], **e)
+            
+            _log(session_id, "Mission engine: graph loaded into spatial memory", agent="DependencyAgent")
+            snapshot.merge_session(session_id, {"graph": engine.graph.export_snapshot()})
+        except Exception as exc:
+            _log(session_id, f"Mission engine warning: {exc}", "warn", "DependencyAgent")
+            snapshot.merge_session(
+                session_id,
+                {
+                    "graph": {
+                        "nodes": graph_data.get("nodes", []),
+                        "edges": graph_data.get("edges", []),
+                    },
                 },
-            },
-        )
+            )
         _log(
             session_id,
             f"Dependency graph: {graph_data['metrics']['node_count']} nodes, "
