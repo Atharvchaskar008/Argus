@@ -42,3 +42,25 @@ edge depends_on {
 edge discovered_by {
     has agent: str = "";
 }
+
+node DependencyNode {
+    has name: str = "",
+        ecosystem: str = "",
+        cve_ids: list = [],
+        llm_rating: str = "LOW",
+        severity: str = "LOW";
+}
+
+node SecretNode {
+    has file_path: str = "",
+        secret_type: str = "",
+        risk_explanation: str = "";
+}
+
+node ReportNode {
+    has total_issues: int = 0,
+        summary: str = "",
+        risk_score: int = 50,
+        recommendations: list = [];
+}
+
