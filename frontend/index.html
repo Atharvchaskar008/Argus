@@ -1,101 +1,13 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>RepoSense - AI Mission Control</title>
-  <link rel="icon" type="image/svg+xml" href="/reposense-mark.svg" />
-  <link rel="stylesheet" href="style.css" />
-</head>
-<body>
-  <div class="scanline" aria-hidden="true"></div>
-
-  <header class="top-bar">
-    <div class="brand">
-      <svg class="brand-logo" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-        <rect x="8" y="8" width="112" height="112" rx="28" fill="var(--panel-elevated, #ffffff)"/>
-        <rect x="8.5" y="8.5" width="111" height="111" rx="27.5" stroke="var(--border, #d4d4d8)"/>
-        <path d="M32 40H96" stroke="var(--border, #d4d4d8)" stroke-width="2"/>
-        <path d="M32 64H96" stroke="var(--border, #d4d4d8)" stroke-width="2"/>
-        <path d="M32 88H76" stroke="var(--border, #d4d4d8)" stroke-width="2"/>
-        <path d="M36 86L56 50L76 66L94 38" stroke="var(--text, #111111)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
-        <circle cx="36" cy="86" r="7" fill="var(--text, #111111)"/>
-        <circle cx="56" cy="50" r="7" fill="var(--text, #111111)"/>
-        <circle cx="76" cy="66" r="7" fill="var(--text, #111111)"/>
-        <circle cx="94" cy="38" r="7" fill="var(--text, #111111)"/>
-        <circle cx="84" cy="92" r="5" fill="var(--muted, #666666)"/>
-      </svg>
-      <div class="brand-lockup">
-        <h1>RepoSense</h1>
-        <p>Autonomous Graph-Native Engineering Mission Control</p>
-      </div>
-    </div>
-    <div class="controls">
-      <input type="text" id="repoInput" placeholder="https://github.com/owner/repo" />
-      <select id="executionMode" aria-label="Execution mode">
-        <option value="autonomous">Autonomous</option>
-        <option value="approval">Approval Required</option>
-      </select>
-      <button id="analyzeBtn" class="btn-primary">Start Analysis</button>
-    </div>
-  </header>
-
-  <main class="grid">
-    <section class="panel agents-panel">
-      <h2>Active Agents</h2>
-      <div id="agentsGrid" class="agents-grid"></div>
-    </section>
-
-    <section class="panel stream-panel">
-      <h2>Live Execution Stream</h2>
-      <div class="stream-status">
-        <div class="phase-pill" id="missionPhase">Preparing analysis</div>
-        <div class="connection-pill connecting" id="streamConnection">Disconnected</div>
-      </div>
-      <div class="agent-ticker" id="agentTicker">Waiting for agents to start...</div>
-      <div id="logStream" class="log-stream" role="log" aria-live="polite"></div>
-    </section>
-
-    <section class="panel intel-panel">
-      <h2>Repository Intelligence</h2>
-      <div class="intel-grid">
-        <div class="intel-item"><span>Repository</span><strong id="intelRepo">-</strong></div>
-        <div class="intel-item"><span>Stars / Forks / Issues</span><strong id="intelStars">-</strong></div>
-        <div class="intel-item"><span>Repo Type</span><strong id="intelType">-</strong></div>
-        <div class="intel-item"><span>Architecture</span><strong id="intelArch">-</strong></div>
-        <div class="intel-item"><span>Languages</span><strong id="intelTech">-</strong></div>
-        <div class="intel-item"><span>Complexity</span><strong id="intelComplexity">-</strong></div>
-        <div class="intel-item"><span>Code Quality</span><strong id="intelQuality">-</strong></div>
-        <div class="intel-item"><span>Risk Level</span><strong id="intelRisk" class="risk-badge">-</strong></div>
-        <div class="intel-item full"><span>AI Summary</span><p id="intelPurpose">Awaiting autonomous execution...</p></div>
-        <div class="intel-item full"><span>Recommendations</span><ul id="intelRecs" class="rec-list"><li class="muted">-</li></ul></div>
-      </div>
-    </section>
-
-    <section class="panel approval-panel">
-      <h2>Agent Decision Console</h2>
-      <div id="approvalConsole" class="approval-console">
-        <p class="muted">Supervisor approvals appear when agents request critical actions.</p>
-      </div>
-    </section>
-
-    <section class="panel graph-panel">
-      <h2>System Graph</h2>
-      <svg id="graphSvg" class="graph-svg" viewBox="0 0 600 320" aria-label="Dependency graph"></svg>
-    </section>
-
-    <section class="panel fixes-panel">
-      <h2>Suggested Patches</h2>
-      <div id="fixesList" class="fixes-list"></div>
-    </section>
-  </main>
-
-  <footer class="query-bar">
-    <input type="text" id="queryInput" placeholder="Ask RepoSense... (e.g. Why is this vulnerable?)" />
-    <button id="queryBtn" class="btn-ghost">Ask</button>
-    <div id="queryAnswer" class="query-answer"></div>
-  </footer>
-
-  <script src="app.js"></script>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>frontend</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
 </html>

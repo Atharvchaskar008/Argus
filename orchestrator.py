@@ -516,7 +516,7 @@ def _fallback_recommendations(findings, maintainability, readme) -> list:
     return recs
 
 
-def answer_query(session_id: str, query: str) -> str:
+def answer_query(session_id: str, query: str, model: str | None = None) -> str:
     session = snapshot.get_session(session_id)
     if not session:
         return "No active analysis session."
@@ -529,7 +529,7 @@ def answer_query(session_id: str, query: str) -> str:
             "recommendations": session.get("recommendations", []),
         }
     )
-    text, _ = llm_chat(ctx, query)
+    text, _ = llm_chat(ctx, query, model_provider=model)
     return text
 
 

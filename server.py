@@ -30,7 +30,7 @@ logging.basicConfig(
 log = logging.getLogger("reposense")
 
 BASE_DIR = Path(__file__).resolve().parent
-FRONTEND = BASE_DIR / "frontend"
+FRONTEND = BASE_DIR / "frontend" / "dist"
 
 app = Flask(__name__, static_folder=None)
 CORS(app, resources={r"/*": {"origins": "*"}})
@@ -117,19 +117,14 @@ def index():
     return send_from_directory(FRONTEND, "index.html")
 
 
-@app.route("/style.css")
-def style_css():
-    return send_from_directory(FRONTEND, "style.css")
+@app.route("/assets/<path:filename>")
+def serve_assets(filename):
+    return send_from_directory(FRONTEND / "assets", filename)
 
 
-@app.route("/app.js")
-def app_js():
-    return send_from_directory(FRONTEND, "app.js")
-
-
-@app.route("/reposense-mark.svg")
-def reposense_mark():
-    return send_from_directory(FRONTEND, "reposense-mark.svg")
+@app.route("/<path:filename>")
+def serve_public(filename):
+    return send_from_directory(FRONTEND, filename)
 
 
 @app.route("/sessions")
@@ -334,9 +329,10 @@ def chat():
     body = request.get_json(force=True, silent=True) or {}
     sid = body.get("session_id")
     q = body.get("query") or body.get("message") or ""
+    model = body.get("model") or None
     if not q.strip():
         return jsonify({"error": "query required"}), 400
-    answer = answer_query(sid, q.strip())
+    answer = answer_query(sid, q.strip(), model)
     return jsonify({"answer": answer})
 
 

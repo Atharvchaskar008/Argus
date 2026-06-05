@@ -9,9 +9,11 @@ import urllib.request
 
 from config import (
     ANTHROPIC_API_KEY,
+    DEEPSEEK_API_KEY,
     GEMINI_API_KEY,
     GEMINI_MODEL,
     GEMINI_TIMEOUT_SEC,
+    GROK_API_KEY,
     LOW_COST_MODE,
     OPENAI_API_KEY,
     OPENAI_MODEL,
@@ -28,30 +30,53 @@ def _heuristic(prompt: str) -> str:
     )
 
 
-def generate(prompt: str, system: str = "") -> tuple[str, str]:
+def generate(prompt: str, system: str = "", model_provider: str | None = None) -> tuple[str, str]:
     """
     Generate text from prompt.
-    Returns (text, provider) where provider is gemini|openai|heuristic.
+    Returns (text, provider) where provider is gemini|openai|anthropic|deepseek|grok|heuristic.
     """
-    if LOW_COST_MODE and not GEMINI_API_KEY and not OPENAI_API_KEY and not ANTHROPIC_API_KEY:
+    if LOW_COST_MODE and not any([GEMINI_API_KEY, OPENAI_API_KEY, ANTHROPIC_API_KEY, DEEPSEEK_API_KEY, GROK_API_KEY]):
         return _heuristic(prompt), "heuristic"
 
     full_prompt = f"{system}\n\n{prompt}".strip() if system else prompt
 
+    if model_provider:
+        provider = model_provider.lower()
+        if provider == "deepseek" and DEEPSEEK_API_KEY:
+            text = _deepseek(full_prompt, system)
+            if text: return text, "deepseek"
+        elif provider == "grok" and GROK_API_KEY:
+            text = _grok(full_prompt, system)
+            if text: return text, "grok"
+        elif provider == "gemini" and GEMINI_API_KEY:
+            text = _gemini(full_prompt)
+            if text: return text, "gemini"
+        elif provider in ("openai", "gpt") and OPENAI_API_KEY:
+            text = _openai(full_prompt, system)
+            if text: return text, "openai"
+        elif provider in ("anthropic", "claude") and ANTHROPIC_API_KEY:
+            text = _anthropic(full_prompt, system)
+            if text: return text, "anthropic"
+
     if GEMINI_API_KEY:
         text = _gemini(full_prompt)
-        if text:
-            return text, "gemini"
+        if text: return text, "gemini"
 
     if OPENAI_API_KEY:
         text = _openai(full_prompt, system)
-        if text:
-            return text, "openai"
+        if text: return text, "openai"
+
+    if DEEPSEEK_API_KEY:
+        text = _deepseek(full_prompt, system)
+        if text: return text, "deepseek"
+
+    if GROK_API_KEY:
+        text = _grok(full_prompt, system)
+        if text: return text, "grok"
 
     if ANTHROPIC_API_KEY:
         text = _anthropic(full_prompt, system)
-        if text:
-            return text, "anthropic"
+        if text: return text, "anthropic"
 
     log.warning("LLM providers unavailable or failed; falling back to heuristic output")
     return _heuristic(prompt), "heuristic"
@@ -97,7 +122,7 @@ def complete(
     return {"text": text, "source": provider}
 
 
-def chat(session_context: str, question: str) -> tuple[str, str]:
+def chat(session_context: str, question: str, model_provider: str | None = None) -> tuple[str, str]:
     """Session-aware Q&A over analysis context."""
     prompt = (
         f"You are RepoSense, an expert repository intelligence assistant.\n"
@@ -105,7 +130,7 @@ def chat(session_context: str, question: str) -> tuple[str, str]:
         f"CONTEXT:\n{session_context[:12000]}\n\n"
         f"QUESTION: {question}"
     )
-    return generate(prompt, system="Answer in 2-5 sentences.")
+    return generate(prompt, system="Answer in 2-5 sentences.", model_provider=model_provider)
 
 
 def _gemini(prompt: str) -> str | None:
@@ -178,4 +203,54 @@ def _anthropic(prompt: str, system: str = "") -> str | None:
         return resp.content[0].text.strip() if resp.content else None
     except Exception as exc:
         log.warning("Anthropic request failed: %s", exc)
+        return None
+
+def _deepseek(prompt: str, system: str) -> str | None:
+    try:
+        from openai import OpenAI
+        client = OpenAI(
+            api_key=__import__('config').DEEPSEEK_API_KEY,
+            base_url="https://api.deepseek.com/v1",
+            timeout=__import__('config').OPENAI_TIMEOUT_SEC,
+            max_retries=0,
+        )
+        messages = []
+        if system:
+            messages.append({"role": "system", "content": system})
+        messages.append({"role": "user", "content": prompt})
+        resp = client.chat.completions.create(
+            model="deepseek-chat",
+            messages=messages,
+            max_tokens=2048,
+            temperature=0.3,
+        )
+        content = resp.choices[0].message.content
+        return content.strip() if isinstance(content, str) else None
+    except Exception as exc:
+        log.warning("DeepSeek request failed: %s", exc)
+        return None
+
+def _grok(prompt: str, system: str) -> str | None:
+    try:
+        from openai import OpenAI
+        client = OpenAI(
+            api_key=__import__('config').GROK_API_KEY,
+            base_url="https://api.x.ai/v1",
+            timeout=__import__('config').OPENAI_TIMEOUT_SEC,
+            max_retries=0,
+        )
+        messages = []
+        if system:
+            messages.append({"role": "system", "content": system})
+        messages.append({"role": "user", "content": prompt})
+        resp = client.chat.completions.create(
+            model="grok-beta",
+            messages=messages,
+            max_tokens=2048,
+            temperature=0.3,
+        )
+        content = resp.choices[0].message.content
+        return content.strip() if isinstance(content, str) else None
+    except Exception as exc:
+        log.warning("Grok request failed: %s", exc)
         return None
