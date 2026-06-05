@@ -17,7 +17,7 @@ from flask import Flask, Response, jsonify, request, send_from_directory
 from flask_cors import CORS
 from werkzeug.exceptions import HTTPException
 
-from config import GEMINI_API_KEY, GITHUB_TOKEN, OPENAI_API_KEY, PORT
+from config import ANTHROPIC_API_KEY, GEMINI_API_KEY, GITHUB_TOKEN, OPENAI_API_KEY, PORT
 from orchestrator import answer_query, resolve_approval, run_analysis
 from utils import snapshot
 from utils.repo_validate import validate_github_url
@@ -152,6 +152,7 @@ def health():
             "service": "RepoSense",
             "gemini": bool(GEMINI_API_KEY),
             "openai": bool(OPENAI_API_KEY),
+            "anthropic": bool(ANTHROPIC_API_KEY),
             "github_token": bool(GITHUB_TOKEN),
         }
     )
