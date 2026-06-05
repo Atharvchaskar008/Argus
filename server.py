@@ -281,6 +281,28 @@ def get_cve_route(session_id):
     return jsonify(session.get("cve_findings", []))
 
 
+@app.route("/export/<session_id>")
+def export_session(session_id):
+    session = snapshot.export_report(session_id)
+    if not session:
+        return jsonify({"error": "session not found"}), 404
+    filename = f"reposense_{session_id}.json"
+    response = Response(
+        json.dumps(session, indent=2),
+        mimetype="application/json",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+    return response
+
+
+@app.route("/report/<session_id>")
+def report_session(session_id):
+    session = snapshot.export_report(session_id)
+    if not session:
+        return jsonify({"error": "session not found"}), 404
+    return jsonify(session)
+
+
 @app.route("/session/<session_id>", methods=["DELETE"])
 def delete_session_route(session_id):
     if not snapshot.get_session(session_id):

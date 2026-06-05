@@ -195,3 +195,18 @@ def delete_session(session_id: str) -> bool:
                 pass
     return False
 
+
+def export_report(session_id: str) -> dict | None:
+    s = get_session(session_id)
+    if not s:
+        return None
+    s["report_metadata"] = {
+        "exported_at": _iso(),
+        "version": "1.0",
+        "tool": "RepoSense",
+        "total_findings": len(s.get("findings", [])),
+        "total_fixes": len(s.get("fixes", [])),
+        "overall_grade": s.get("code_quality", {}).get("grade", "N/A"),
+    }
+    return s
+
