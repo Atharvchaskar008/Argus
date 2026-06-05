@@ -314,6 +314,16 @@ def run_analysis(session_id: str, repo_url: str, execution_mode: str = "autonomo
                 "warn" if finding.get("severity") in ("high", "medium") else "info",
                 "SecurityAgent",
             )
+            
+        from utils.github_tools import scan_dependencies_for_cves
+        _log(session_id, "Scanning dependencies for known CVEs (OSV.dev)...", agent="SecurityAgent")
+        cve_findings = scan_dependencies_for_cves(repo_path)
+        if cve_findings:
+            snapshot.merge_session(session_id, {"cve_findings": cve_findings})
+            _log(session_id, f"CVE scan: {len(cve_findings)} vulnerable packages found", "warn", "SecurityAgent")
+        else:
+            _log(session_id, "CVE scan: no known vulnerabilities in dependencies", agent="SecurityAgent")
+
         _agent(session_id, "SecurityAgent", "COMPLETED", f"{len(findings)} findings")
         snapshot.emit_progress(session_id, 55)
 

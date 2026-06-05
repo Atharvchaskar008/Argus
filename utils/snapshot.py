@@ -41,6 +41,7 @@ def _default_session(session_id: str) -> dict:
         "maintainability": {},
         "structure": {},
         "contributors": [],
+        "cve_findings": [],
         "progress": 0,
         "created_at": _iso(),
         "updated_at": _iso(),
