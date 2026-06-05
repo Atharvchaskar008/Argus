@@ -146,6 +146,14 @@ def get_sessions():
 
 @app.route("/health")
 def health():
+    import requests
+    github_reachable = False
+    try:
+        resp = requests.get("https://api.github.com", timeout=3)
+        github_reachable = (resp.status_code == 200)
+    except Exception:
+        pass
+
     return jsonify(
         {
             "status": "ok",
@@ -154,6 +162,7 @@ def health():
             "openai": bool(OPENAI_API_KEY),
             "anthropic": bool(ANTHROPIC_API_KEY),
             "github_token": bool(GITHUB_TOKEN),
+            "github_api_reachable": github_reachable,
         }
     )
 
