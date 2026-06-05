@@ -267,6 +267,14 @@ def chat():
     return jsonify({"answer": answer})
 
 
+@app.route("/cve/<session_id>")
+def get_cve_route(session_id):
+    session = snapshot.get_session(session_id)
+    if not session:
+        return jsonify([])
+    return jsonify(session.get("cve_findings", []))
+
+
 if __name__ == "__main__":
     host = os.getenv("HOST", "0.0.0.0")
     port = PORT

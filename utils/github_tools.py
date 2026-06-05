@@ -328,3 +328,65 @@ def featherless_complete(prompt: str, max_tokens: int = 500) -> str:
         return result.get("text", "")
     except ImportError:
         return "Rotate any exposed credentials immediately."
+
+
+def scan_dependencies_for_cves(repo_path: str) -> list[dict]:
+    """
+    Read requirements.txt / package.json from repo_path,
+    query OSV API for each dependency, return findings list.
+    Each finding: {"name": str, "version": str, "ecosystem": str,
+                   "cve_ids": list[str], "severity": str}
+    """
+    from pathlib import Path
+    import json, urllib.request, urllib.error
+    import re
+
+    findings = []
+
+    # --- Python: requirements.txt ---
+    req_file = Path(repo_path) / "requirements.txt"
+    if req_file.exists():
+        for line in req_file.read_text(errors="ignore").splitlines():
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            parts = re.split(r"[>=<!~^]", line, maxsplit=1)
+            name = parts[0].strip()
+            version = parts[1].strip() if len(parts) > 1 else ""
+            if not name:
+                continue
+            try:
+                body = json.dumps({"version": version, "package": {"name": name, "ecosystem": "PyPI"}}).encode()
+                req = urllib.request.Request(OSV_API, data=body, headers={"Content-Type": "application/json"})
+                with urllib.request.urlopen(req, timeout=8) as resp:
+                    data = json.loads(resp.read().decode())
+                vulns = data.get("vulns", [])
+                if vulns:
+                    cve_ids = [v.get("id", "") for v in vulns[:MAX_CVE_IDS]]
+                    findings.append({"name": name, "version": version, "ecosystem": "PyPI", "cve_ids": cve_ids, "severity": "medium"})
+            except Exception:
+                pass  # OSV unavailable or timeout — skip silently
+
+    # --- Node: package.json ---
+    pkg_file = Path(repo_path) / "package.json"
+    if pkg_file.exists():
+        try:
+            pkg = json.loads(pkg_file.read_text(errors="ignore"))
+            deps = {**pkg.get("dependencies", {}), **pkg.get("devDependencies", {})}
+            for name, version_range in list(deps.items())[:MAX_DEPS]:
+                version = re.sub(r"[^0-9.]", "", version_range)[:10]
+                try:
+                    body = json.dumps({"version": version, "package": {"name": name, "ecosystem": "npm"}}).encode()
+                    req = urllib.request.Request(OSV_API, data=body, headers={"Content-Type": "application/json"})
+                    with urllib.request.urlopen(req, timeout=8) as resp:
+                        data = json.loads(resp.read().decode())
+                    vulns = data.get("vulns", [])
+                    if vulns:
+                        cve_ids = [v.get("id", "") for v in vulns[:MAX_CVE_IDS]]
+                        findings.append({"name": name, "version": version, "ecosystem": "npm", "cve_ids": cve_ids, "severity": "medium"})
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+    return findings
