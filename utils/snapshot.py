@@ -1,10 +1,14 @@
 """Session snapshot persistence for SSE transport."""
 
 import json
+import os
 import threading
+import time
 from datetime import datetime, timezone
 
 from config import OUTPUTS_DIR
+
+SESSION_MAX_AGE_SECONDS = int(os.getenv("SESSION_MAX_AGE_HOURS", "24")) * 3600
 
 _lock = threading.Lock()
 
@@ -149,4 +153,45 @@ def list_sessions() -> list[dict]:
             except Exception:
                 pass
     return sessions
+
+
+def cleanup_old_sessions() -> int:
+    """Delete session files older than SESSION_MAX_AGE_SECONDS. Returns count deleted."""
+    deleted = 0
+    cutoff = time.time() - SESSION_MAX_AGE_SECONDS
+    for p in OUTPUTS_DIR.glob("*_live.json"):
+        try:
+            if p.stat().st_mtime < cutoff:
+                p.unlink()
+                deleted += 1
+        except OSError:
+            pass
+    return deleted
+
+
+def get_session_summary(session_id: str) -> dict | None:
+    """Lightweight read — returns only status/progress/repo_url, not full logs."""
+    s = get_session(session_id)
+    if not s:
+        return None
+    return {
+        "id": session_id,
+        "status": s.get("status"),
+        "progress": s.get("progress", 0),
+        "repo_url": s.get("repo_url"),
+        "created_at": s.get("created_at"),
+        "updated_at": s.get("updated_at"),
+    }
+
+
+def delete_session(session_id: str) -> bool:
+    with _lock:
+        path = _path(session_id)
+        if path.exists():
+            try:
+                path.unlink()
+                return True
+            except OSError:
+                pass
+    return False
 
