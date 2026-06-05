@@ -194,6 +194,64 @@ def analyze():
     return jsonify({"session_id": session_id, "status": "queued"}), 202
 
 
+@app.route("/compare", methods=["POST"])
+def compare_repos():
+    body = request.get_json(force=True, silent=True) or {}
+    urls = body.get("repos", [])
+    if not isinstance(urls, list) or len(urls) != 2:
+        return jsonify({"error": "Provide exactly 2 repo URLs in 'repos' array"}), 400
+
+    results = []
+    for url in urls:
+        ok, err, normalized = validate_github_url(url)
+        if not ok:
+            return jsonify({"error": f"Invalid URL '{url}': {err}"}), 400
+        results.append(normalized)
+
+    # Start two analysis sessions in parallel
+    session_ids = []
+    for normalized in results:
+        sid = str(uuid.uuid4())[:8]
+        snapshot.init_session(sid, normalized, "autonomous")
+        threading.Thread(target=run_analysis, args=(sid, normalized, "autonomous"), daemon=True).start()
+        session_ids.append(sid)
+
+    return jsonify({
+        "comparison_id": str(uuid.uuid4())[:8],
+        "session_ids": session_ids,
+        "repos": results,
+        "status": "both_queued"
+    }), 202
+
+
+@app.route("/compare/result")
+def compare_result():
+    sid_a = request.args.get("a")
+    sid_b = request.args.get("b")
+    if not sid_a or not sid_b:
+        return jsonify({"error": "Provide ?a=<session_id>&b=<session_id>"}), 400
+
+    def _summary(sid):
+        s = snapshot.get_session(sid)
+        if not s:
+            return {"error": "session not found"}
+        return {
+            "repo": s.get("github", {}).get("full_name", s.get("repo_url")),
+            "status": s.get("status"),
+            "findings_count": len(s.get("findings", [])),
+            "quality_grade": s.get("code_quality", {}).get("grade"),
+            "quality_score": s.get("code_quality", {}).get("score"),
+            "maintainability_grade": s.get("maintainability", {}).get("grade"),
+            "node_count": (s.get("graph") or {}).get("nodes") and len(s["graph"]["nodes"]),
+            "recommendations": (s.get("recommendations") or [])[:3],
+        }
+
+    return jsonify({
+        "a": _summary(sid_a),
+        "b": _summary(sid_b),
+    })
+
+
 @app.route("/session/<session_id>")
 def get_session_route(session_id):
     session = snapshot.get_session(session_id)
