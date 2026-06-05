@@ -21,6 +21,7 @@ from config import GEMINI_API_KEY, GITHUB_TOKEN, OPENAI_API_KEY, PORT
 from orchestrator import answer_query, resolve_approval, run_analysis
 from utils import snapshot
 from utils.repo_validate import validate_github_url
+from utils.rate_limiter import allow_request
 
 logging.basicConfig(
     level=logging.INFO,
@@ -131,6 +132,13 @@ def reposense_mark():
     return send_from_directory(FRONTEND, "reposense-mark.svg")
 
 
+@app.route("/sessions")
+@app.route("/sessions/")
+def get_sessions():
+    sessions = snapshot.list_sessions()
+    return jsonify([{"id": s["id"], "status": s["status"]} for s in sessions])
+
+
 @app.route("/health")
 def health():
     return jsonify(
@@ -146,6 +154,10 @@ def health():
 
 @app.route("/analyze", methods=["POST"])
 def analyze():
+    allowed, msg = allow_request(request.remote_addr, max_requests=10, window_seconds=60)
+    if not allowed:
+        return jsonify({"error": msg}), 429
+
     body = request.get_json(force=True, silent=True) or {}
     repo_url = (body.get("repo_url") or "").strip()
     mode = body.get("execution_mode", "autonomous")
@@ -193,28 +205,31 @@ def stream(session_id):
 
         yield "retry: 2000\n\n"
 
-        while idle < max_idle:
-            session = snapshot.get_session(session_id)
-            if not session:
-                yield f"data: {json.dumps({'type': 'error', 'data': {'message': 'session not found'}})}\n\n"
-                return
+        try:
+            while idle < max_idle:
+                session = snapshot.get_session(session_id)
+                if not session:
+                    yield f"data: {json.dumps({'type': 'error', 'data': {'message': 'session not found'}})}\n\n"
+                    return
 
-            logs = session.get("logs", [])
-            if len(logs) > last_logs:
-                for entry in logs[last_logs:]:
-                    yield f"data: {json.dumps({'type': 'log', 'data': entry})}\n\n"
-                last_logs = len(logs)
-                idle = 0
+                logs = session.get("logs", [])
+                if len(logs) > last_logs:
+                    for entry in logs[last_logs:]:
+                        yield f"data: {json.dumps({'type': 'log', 'data': entry})}\n\n"
+                    last_logs = len(logs)
+                    idle = 0
 
-            yield f"data: {json.dumps({'type': 'state', 'data': _public_state(session)})}\n\n"
+                yield f"data: {json.dumps({'type': 'state', 'data': _public_state(session)})}\n\n"
 
-            if session.get("status") in ("completed", "failed"):
-                yield f"data: {json.dumps({'type': 'done', 'data': {'status': session['status']}})}\n\n"
-                return
+                if session.get("status") in ("completed", "failed"):
+                    yield f"data: {json.dumps({'type': 'done', 'data': {'status': session['status']}})}\n\n"
+                    return
 
-            idle += 1
-            yield ": keep-alive\n\n"
-            time.sleep(0.5)
+                idle += 1
+                yield ": keep-alive\n\n"
+                time.sleep(0.5)
+        except GeneratorExit:
+            pass
 
     return Response(
         generate(),
