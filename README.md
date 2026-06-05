@@ -158,6 +158,24 @@ SESSION_ID=demo REPO_URL=https://github.com/pallets/flask jac run mission.jac
 - **No live updates:** Ensure you are accessing the app via `localhost` and not opening the HTML file directly.
 - **Cloning fails:** Ensure the target repository is public and accessible.
 
+## 📚 API Reference
+
+| Method | Path | Description |
+|---|---|---|
+| GET | `/` | Serves the Mission Control dashboard UI. |
+| GET | `/health` | Live connectivity and configuration check. |
+| POST | `/analyze` | Starts repository analysis. |
+| GET | `/stream/<session_id>` | SSE stream for real-time analysis progress. |
+| GET | `/session/<session_id>` | Returns full session details. |
+| GET | `/sessions` | Returns lightweight metadata for all active sessions. |
+| DELETE | `/session/<session_id>` | Deletes an active session and its artifacts. |
+| POST | `/approve_fix` | Approves or rejects a suggested fix. |
+| POST | `/query` / `/chat` | Conversational query over session state. |
+| GET | `/export/<session_id>` | Downloads complete analysis as a JSON file. |
+| GET | `/report/<session_id>` | Retrieves complete analysis as JSON payload. |
+| POST | `/compare` | Starts parallel analysis of two repositories. |
+| GET | `/compare/result` | Returns side-by-side comparison. |
+
 ## 🚀 Quick Start
 
 If your environment is ready, start the application in one command:
