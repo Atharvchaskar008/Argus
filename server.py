@@ -22,6 +22,7 @@ from orchestrator import answer_query, resolve_approval, run_analysis
 from utils import snapshot
 from utils.repo_validate import validate_github_url
 from utils.rate_limiter import allow_request
+from utils.provider_registry import registry
 
 logging.basicConfig(
     level=logging.INFO,
@@ -141,25 +142,12 @@ def get_sessions():
 
 @app.route("/health")
 def health():
-    import requests
-    github_reachable = False
-    try:
-        resp = requests.get("https://api.github.com", timeout=3)
-        github_reachable = (resp.status_code == 200)
-    except Exception:
-        pass
+    return jsonify({"status": "ok", "version": "1.0.0"})
 
-    return jsonify(
-        {
-            "status": "ok",
-            "service": "RepoSense",
-            "gemini": bool(GEMINI_API_KEY),
-            "openai": bool(OPENAI_API_KEY),
-            "anthropic": bool(ANTHROPIC_API_KEY),
-            "github_token": bool(GITHUB_TOKEN),
-            "github_api_reachable": github_reachable,
-        }
-    )
+
+@app.route("/health/providers")
+def health_providers():
+    return jsonify(registry.check_health())
 
 
 @app.route("/analyze", methods=["POST"])

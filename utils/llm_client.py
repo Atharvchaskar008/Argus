@@ -1,11 +1,11 @@
-"""Unified LLM client - Gemini primary, OpenAI fallback, heuristic last."""
+"""Unified LLM client - Strict single-model mode with robust error handling."""
 
 from __future__ import annotations
-
 import json
 import logging
 import urllib.error
 import urllib.request
+import os
 
 from config import (
     ANTHROPIC_API_KEY,
@@ -14,7 +14,8 @@ from config import (
     GEMINI_MODEL,
     GEMINI_TIMEOUT_SEC,
     GROK_API_KEY,
-    LOW_COST_MODE,
+    GROQ_API_KEY,
+    OPENROUTER_API_KEY,
     OPENAI_API_KEY,
     OPENAI_MODEL,
     OPENAI_TIMEOUT_SEC,
@@ -22,6 +23,20 @@ from config import (
 
 log = logging.getLogger("reposense.llm")
 
+class LLMProviderError(Exception):
+    def __init__(self, provider: str, reason: str, fix: str):
+        self.provider = provider
+        self.reason = reason
+        self.fix = fix
+        super().__init__(f"[{provider}] {reason}")
+
+    def to_dict(self):
+        return {
+            "provider": self.provider,
+            "reason": self.reason,
+            "suggested_fix": self.fix,
+            "status": "Failed"
+        }
 
 def _heuristic(prompt: str) -> str:
     return (
@@ -29,58 +44,44 @@ def _heuristic(prompt: str) -> str:
         "Enable GEMINI_API_KEY or OPENAI_API_KEY for richer AI insights."
     )
 
-
-def generate(prompt: str, system: str = "", model_provider: str | None = None) -> tuple[str, str]:
+def generate(prompt: str, system: str = "", model_provider: str = "gemini") -> tuple[str, str]:
     """
-    Generate text from prompt.
-    Returns (text, provider) where provider is gemini|openai|anthropic|deepseek|grok|heuristic.
+    Generate text from prompt. Strict single-provider execution.
+    Raises LLMProviderError on any failure.
     """
-    if LOW_COST_MODE and not any([GEMINI_API_KEY, OPENAI_API_KEY, ANTHROPIC_API_KEY, DEEPSEEK_API_KEY, GROK_API_KEY]):
-        return _heuristic(prompt), "heuristic"
-
     full_prompt = f"{system}\n\n{prompt}".strip() if system else prompt
+    provider = (model_provider or "gemini").lower()
 
-    if model_provider:
-        provider = model_provider.lower()
-        if provider == "deepseek" and DEEPSEEK_API_KEY:
-            text = _deepseek(full_prompt, system)
-            if text: return text, "deepseek"
-        elif provider == "grok" and GROK_API_KEY:
-            text = _grok(full_prompt, system)
-            if text: return text, "grok"
-        elif provider == "gemini" and GEMINI_API_KEY:
-            text = _gemini(full_prompt)
-            if text: return text, "gemini"
-        elif provider in ("openai", "gpt") and OPENAI_API_KEY:
-            text = _openai(full_prompt, system)
-            if text: return text, "openai"
-        elif provider in ("anthropic", "claude") and ANTHROPIC_API_KEY:
-            text = _anthropic(full_prompt, system)
-            if text: return text, "anthropic"
-
-    if GEMINI_API_KEY:
-        text = _gemini(full_prompt)
-        if text: return text, "gemini"
-
-    if OPENAI_API_KEY:
-        text = _openai(full_prompt, system)
-        if text: return text, "openai"
-
-    if DEEPSEEK_API_KEY:
-        text = _deepseek(full_prompt, system)
-        if text: return text, "deepseek"
-
-    if GROK_API_KEY:
-        text = _grok(full_prompt, system)
-        if text: return text, "grok"
-
-    if ANTHROPIC_API_KEY:
-        text = _anthropic(full_prompt, system)
-        if text: return text, "anthropic"
-
-    log.warning("LLM providers unavailable or failed; falling back to heuristic output")
-    return _heuristic(prompt), "heuristic"
-
+    if provider == "gemini":
+        if not GEMINI_API_KEY:
+            raise LLMProviderError("Gemini", "API key missing.", "Add GEMINI_API_KEY to .env file.")
+        return _gemini(full_prompt), "gemini"
+    elif provider in ("openai", "gpt"):
+        if not OPENAI_API_KEY:
+            raise LLMProviderError("OpenAI", "API key missing.", "Add OPENAI_API_KEY to .env file.")
+        return _openai(full_prompt, system), "openai"
+    elif provider in ("anthropic", "claude"):
+        if not ANTHROPIC_API_KEY:
+            raise LLMProviderError("Anthropic", "API key missing.", "Add ANTHROPIC_API_KEY to .env file.")
+        return _anthropic(full_prompt, system), "anthropic"
+    elif provider == "deepseek":
+        if not DEEPSEEK_API_KEY:
+            raise LLMProviderError("DeepSeek", "API key missing.", "Add DEEPSEEK_API_KEY to .env file.")
+        return _deepseek(full_prompt, system), "deepseek"
+    elif provider == "grok":
+        if not GROK_API_KEY:
+            raise LLMProviderError("Grok", "API key missing.", "Add GROK_API_KEY to .env file.")
+        return _grok(full_prompt, system), "grok"
+    elif provider == "groq":
+        if not GROQ_API_KEY:
+            raise LLMProviderError("Groq", "API key missing.", "Add GROQ_API_KEY to .env file.")
+        return _groq(full_prompt, system), "groq"
+    elif provider == "openrouter":
+        if not OPENROUTER_API_KEY:
+            raise LLMProviderError("OpenRouter", "API key missing.", "Add OPENROUTER_API_KEY to .env file.")
+        return _openrouter(full_prompt, system), "openrouter"
+    else:
+        raise LLMProviderError("System", f"Unknown provider: {provider}", "Select a valid provider.")
 
 def complete(
     prompt: str,
@@ -88,42 +89,17 @@ def complete(
     max_tokens: int = 2048,
     temperature: float = 0.3,
     force_llm: bool = False,
+    model_provider: str = "gemini",
 ) -> dict:
-    """
-    Backwards-compatible completion API used by existing helpers.
+    try:
+        text, provider = generate(prompt, system=system, model_provider=model_provider)
+        return {"text": text, "source": provider}
+    except LLMProviderError as e:
+        return {"text": f"Error: {e.reason}\nSuggested Fix: {e.fix}", "source": e.provider, "error": e.to_dict()}
+    except Exception as e:
+        return {"text": f"Unexpected error: {str(e)}", "source": "system"}
 
-    The current lightweight client keeps these parameters so older callers
-    still work, even though the providers are configured centrally.
-    """
-    del max_tokens, temperature
-
-    if force_llm:
-        full_prompt = f"{system}\n\n{prompt}".strip() if system else prompt
-
-        if GEMINI_API_KEY:
-            text = _gemini(full_prompt)
-            if text:
-                return {"text": text, "source": "gemini"}
-
-        if OPENAI_API_KEY:
-            text = _openai(full_prompt, system)
-            if text:
-                return {"text": text, "source": "openai"}
-
-        if ANTHROPIC_API_KEY:
-            text = _anthropic(full_prompt, system)
-            if text:
-                return {"text": text, "source": "anthropic"}
-
-        log.warning("Forced LLM request failed; returning heuristic fallback")
-        return {"text": _heuristic(prompt), "source": "heuristic"}
-
-    text, provider = generate(prompt, system=system)
-    return {"text": text, "source": provider}
-
-
-def chat(session_context: str, question: str, model_provider: str | None = None) -> tuple[str, str]:
-    """Session-aware Q&A over analysis context."""
+def chat(session_context: str, question: str, model_provider: str = "gemini") -> tuple[str, str]:
     prompt = (
         f"You are RepoSense, an expert repository intelligence assistant.\n"
         f"Use ONLY the analysis context below. Be concise and specific.\n\n"
@@ -132,125 +108,95 @@ def chat(session_context: str, question: str, model_provider: str | None = None)
     )
     return generate(prompt, system="Answer in 2-5 sentences.", model_provider=model_provider)
 
-
-def _gemini(prompt: str) -> str | None:
+def _gemini(prompt: str) -> str:
     try:
         import google.generativeai as genai
-
         genai.configure(api_key=GEMINI_API_KEY)
         model = genai.GenerativeModel(GEMINI_MODEL)
-        response = model.generate_content(
-            prompt,
-            request_options={"timeout": GEMINI_TIMEOUT_SEC},
-        )
+        response = model.generate_content(prompt, request_options={"timeout": GEMINI_TIMEOUT_SEC})
         if response and response.text:
             return response.text.strip()
+        raise Exception("Empty response from Gemini")
     except Exception as exc:
-        log.warning("Gemini SDK request failed: %s", exc)
+        log.error("Gemini failed: %s", exc)
+        raise LLMProviderError("Gemini", str(exc), "Check if your GEMINI_API_KEY is valid and has quota.")
 
-    try:
-        url = (
-            f"https://generativelanguage.googleapis.com/v1beta/models/"
-            f"{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}"
-        )
-        body = json.dumps({"contents": [{"parts": [{"text": prompt}]}]}).encode()
-        req = urllib.request.Request(
-            url, data=body, headers={"Content-Type": "application/json"}
-        )
-        with urllib.request.urlopen(req, timeout=GEMINI_TIMEOUT_SEC) as resp:
-            data = json.loads(resp.read().decode())
-        return data["candidates"][0]["content"]["parts"][0]["text"].strip()
-    except (urllib.error.URLError, TimeoutError, KeyError, IndexError, json.JSONDecodeError) as exc:
-        log.warning("Gemini HTTP fallback request failed: %s", exc)
-        return None
-
-
-def _openai(prompt: str, system: str) -> str | None:
+def _openai(prompt: str, system: str) -> str:
     try:
         from openai import OpenAI
-
-        client = OpenAI(
-            api_key=OPENAI_API_KEY,
-            timeout=OPENAI_TIMEOUT_SEC,
-            max_retries=0,
-        )
-        messages = []
-        if system:
-            messages.append({"role": "system", "content": system})
+        client = OpenAI(api_key=OPENAI_API_KEY, timeout=OPENAI_TIMEOUT_SEC, max_retries=1)
+        messages = [{"role": "system", "content": system}] if system else []
         messages.append({"role": "user", "content": prompt})
-        resp = client.chat.completions.create(
-            model=OPENAI_MODEL,
-            messages=messages,
-            max_tokens=2048,
-            temperature=0.3,
-        )
+        resp = client.chat.completions.create(model=OPENAI_MODEL, messages=messages, max_tokens=2048, temperature=0.3)
         content = resp.choices[0].message.content
-        return content.strip() if isinstance(content, str) else None
+        if not content: raise Exception("Empty response from OpenAI")
+        return content.strip()
     except Exception as exc:
-        log.warning("OpenAI request failed: %s", exc)
-        return None
+        log.error("OpenAI failed: %s", exc)
+        raise LLMProviderError("OpenAI", str(exc), "Check your OPENAI_API_KEY and billing status.")
 
-
-def _anthropic(prompt: str, system: str = "") -> str | None:
+def _anthropic(prompt: str, system: str = "") -> str:
     try:
         import anthropic
-        client = anthropic.Anthropic(api_key=__import__('config').ANTHROPIC_API_KEY)
+        client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
         messages = [{"role": "user", "content": prompt}]
-        kwargs = {"model": "claude-haiku-4-5-20251001", "max_tokens": 2048, "messages": messages}
-        if system:
-            kwargs["system"] = system
+        kwargs = {"model": "claude-3-haiku-20240307", "max_tokens": 2048, "messages": messages}
+        if system: kwargs["system"] = system
         resp = client.messages.create(**kwargs)
-        return resp.content[0].text.strip() if resp.content else None
+        if not resp.content: raise Exception("Empty response from Anthropic")
+        return resp.content[0].text.strip()
     except Exception as exc:
-        log.warning("Anthropic request failed: %s", exc)
-        return None
+        log.error("Anthropic failed: %s", exc)
+        raise LLMProviderError("Anthropic", str(exc), "Verify ANTHROPIC_API_KEY and account credits.")
 
-def _deepseek(prompt: str, system: str) -> str | None:
+def _deepseek(prompt: str, system: str) -> str:
     try:
         from openai import OpenAI
-        client = OpenAI(
-            api_key=__import__('config').DEEPSEEK_API_KEY,
-            base_url="https://api.deepseek.com/v1",
-            timeout=__import__('config').OPENAI_TIMEOUT_SEC,
-            max_retries=0,
-        )
-        messages = []
-        if system:
-            messages.append({"role": "system", "content": system})
+        client = OpenAI(api_key=DEEPSEEK_API_KEY, base_url="https://api.deepseek.com/v1", timeout=OPENAI_TIMEOUT_SEC)
+        messages = [{"role": "system", "content": system}] if system else []
         messages.append({"role": "user", "content": prompt})
-        resp = client.chat.completions.create(
-            model="deepseek-chat",
-            messages=messages,
-            max_tokens=2048,
-            temperature=0.3,
-        )
+        resp = client.chat.completions.create(model="deepseek-chat", messages=messages, max_tokens=2048, temperature=0.3)
         content = resp.choices[0].message.content
-        return content.strip() if isinstance(content, str) else None
+        if not content: raise Exception("Empty response from DeepSeek")
+        return content.strip()
     except Exception as exc:
-        log.warning("DeepSeek request failed: %s", exc)
-        return None
+        raise LLMProviderError("DeepSeek", str(exc), "Check DEEPSEEK_API_KEY.")
 
-def _grok(prompt: str, system: str) -> str | None:
+def _grok(prompt: str, system: str) -> str:
     try:
         from openai import OpenAI
-        client = OpenAI(
-            api_key=__import__('config').GROK_API_KEY,
-            base_url="https://api.x.ai/v1",
-            timeout=__import__('config').OPENAI_TIMEOUT_SEC,
-            max_retries=0,
-        )
-        messages = []
-        if system:
-            messages.append({"role": "system", "content": system})
+        client = OpenAI(api_key=GROK_API_KEY, base_url="https://api.x.ai/v1", timeout=OPENAI_TIMEOUT_SEC)
+        messages = [{"role": "system", "content": system}] if system else []
         messages.append({"role": "user", "content": prompt})
-        resp = client.chat.completions.create(
-            model="grok-beta",
-            messages=messages,
-            max_tokens=2048,
-            temperature=0.3,
-        )
+        resp = client.chat.completions.create(model="grok-beta", messages=messages, max_tokens=2048, temperature=0.3)
         content = resp.choices[0].message.content
-        return content.strip() if isinstance(content, str) else None
+        if not content: raise Exception("Empty response from Grok")
+        return content.strip()
     except Exception as exc:
-        log.warning("Grok request failed: %s", exc)
-        return None
+        raise LLMProviderError("Grok", str(exc), "Check GROK_API_KEY.")
+
+def _groq(prompt: str, system: str) -> str:
+    try:
+        from openai import OpenAI
+        client = OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1", timeout=OPENAI_TIMEOUT_SEC)
+        messages = [{"role": "system", "content": system}] if system else []
+        messages.append({"role": "user", "content": prompt})
+        resp = client.chat.completions.create(model="llama3-70b-8192", messages=messages, max_tokens=2048, temperature=0.3)
+        content = resp.choices[0].message.content
+        if not content: raise Exception("Empty response from Groq")
+        return content.strip()
+    except Exception as exc:
+        raise LLMProviderError("Groq", str(exc), "Check GROQ_API_KEY.")
+
+def _openrouter(prompt: str, system: str) -> str:
+    try:
+        from openai import OpenAI
+        client = OpenAI(api_key=OPENROUTER_API_KEY, base_url="https://openrouter.ai/api/v1", timeout=OPENAI_TIMEOUT_SEC)
+        messages = [{"role": "system", "content": system}] if system else []
+        messages.append({"role": "user", "content": prompt})
+        resp = client.chat.completions.create(model="meta-llama/llama-3-70b-instruct", messages=messages, max_tokens=2048, temperature=0.3)
+        content = resp.choices[0].message.content
+        if not content: raise Exception("Empty response from OpenRouter")
+        return content.strip()
+    except Exception as exc:
+        raise LLMProviderError("OpenRouter", str(exc), "Check OPENROUTER_API_KEY.")

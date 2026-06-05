@@ -39,9 +39,11 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "")
 GROK_API_KEY = os.getenv("GROK_API_KEY", "")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN") or os.getenv("GITHUB_API_KEY", "")
 
-_has_llm = bool(GEMINI_API_KEY or OPENAI_API_KEY or DEEPSEEK_API_KEY or GROK_API_KEY or ANTHROPIC_API_KEY)
+_has_llm = bool(GEMINI_API_KEY or OPENAI_API_KEY or DEEPSEEK_API_KEY or GROK_API_KEY or ANTHROPIC_API_KEY or GROQ_API_KEY or OPENROUTER_API_KEY)
 LOW_COST_MODE = _env_flag("LOW_COST_MODE", "false" if _has_llm else "true")
 
 USE_LOCAL_MODELS = _env_flag("USE_LOCAL_MODELS", "false")

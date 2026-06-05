@@ -1,6 +1,5 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { ShieldAlert, Wrench, CheckCircle, AlertTriangle } from 'lucide-react';
 import { useRepo } from '../context/RepoContext';
 
 export default function RepositoryOverview() {
@@ -9,65 +8,83 @@ export default function RepositoryOverview() {
 
   const { summary, code_quality, findings, recommendations } = sessionState;
 
-  const getScoreColor = (score) => {
-    if (score >= 80) return '#16a34a';
-    if (score >= 60) return '#ca8a04';
-    return '#dc2626';
-  };
-
   return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} style={{ marginBottom: '2rem' }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} style={{ display: 'flex', flexDirection: 'column', gap: '4rem' }}>
+      
+      {/* Overview Hero */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', textAlign: 'center', alignItems: 'center' }}>
+        <h2 style={{ fontSize: '40px', fontWeight: 600, color: '#000000', margin: 0, letterSpacing: '-0.02em' }}>Repository Overview</h2>
+        <p style={{ fontSize: '18px', color: '#404040', maxWidth: '800px', lineHeight: 1.6 }}>{summary.purpose}</p>
         
-        {/* Score Card */}
-        <div style={{ padding: '1.5rem', border: '1px solid var(--color-border)', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-          <div style={{ width: '80px', height: '80px', borderRadius: '50%', border: `4px solid ${getScoreColor(code_quality?.score || 0)}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', fontWeight: 700, color: getScoreColor(code_quality?.score || 0) }}>
-            {code_quality?.grade || '?'}
+        <div style={{ marginTop: '1.5rem', display: 'flex', alignItems: 'center', gap: '3rem', padding: '1.5rem 4rem', border: '1px solid #000000', backgroundColor: '#FFFFFF' }}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '15px', color: '#404040', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem', fontWeight: 600 }}>Security Score</div>
+            <div style={{ fontSize: '40px', fontWeight: 600, color: '#000000', lineHeight: 1 }}>{code_quality?.score || 0}<span style={{ fontSize: '20px', color: '#A3A3A3' }}>/100</span></div>
           </div>
-          <div>
-            <h3 style={{ fontSize: '1.125rem', fontWeight: 600, marginBottom: '0.25rem' }}>Code Quality</h3>
-            <p style={{ color: 'var(--color-gray-500)', fontSize: '0.875rem' }}>Score: {code_quality?.score || 0}/100</p>
-            <p style={{ color: 'var(--color-gray-500)', fontSize: '0.875rem' }}>Risk: {summary.risk_level}</p>
-          </div>
-        </div>
-
-        {/* Critical Issues */}
-        <div style={{ padding: '1.5rem', border: '1px solid var(--color-border)', borderRadius: '8px' }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <ShieldAlert size={18} color="#dc2626" /> Security & Issues
-          </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            {findings?.slice(0, 3).map((f, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', fontSize: '0.875rem' }}>
-                <AlertTriangle size={14} color="#d97706" style={{ marginTop: '0.125rem', flexShrink: 0 }} />
-                <span><span style={{ fontWeight: 500 }}>{f.title}</span> - {f.file}</span>
-              </div>
-            ))}
-            {(!findings || findings.length === 0) && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#16a34a', fontSize: '0.875rem' }}>
-                <CheckCircle size={16} /> No critical issues found
-              </div>
-            )}
+          <div style={{ width: '1px', height: '60px', backgroundColor: '#E5E5E5' }} />
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '15px', color: '#404040', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem', fontWeight: 600 }}>Risk Level</div>
+            <div style={{ fontSize: '28px', fontWeight: 600, color: '#000000', lineHeight: 1.4 }}>{summary.risk_level}</div>
           </div>
         </div>
-
-        {/* Top Fixes/Recs */}
-        <div style={{ padding: '1.5rem', border: '1px solid var(--color-border)', borderRadius: '8px' }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Wrench size={18} color="#2563eb" /> Recommendations
-          </h3>
-          <ul style={{ margin: 0, paddingLeft: '1.25rem', fontSize: '0.875rem', color: 'var(--color-gray-800)', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            {recommendations?.slice(0, 3).map((r, i) => (
-              <li key={i}>{r}</li>
-            ))}
-          </ul>
-        </div>
-
       </div>
 
-      <div style={{ padding: '1.5rem', backgroundColor: 'var(--color-gray-100)', borderRadius: '8px', fontSize: '1rem', lineHeight: 1.6 }}>
-        <span style={{ fontWeight: 600 }}>Summary:</span> {summary.purpose}
+      {/* Critical Findings - Report Style */}
+      <div>
+        <h3 style={{ fontSize: '28px', fontWeight: 600, marginBottom: '2rem', color: '#000000', borderBottom: '2px solid #000000', paddingBottom: '1rem' }}>
+          Security Findings
+        </h3>
+        
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+          {findings?.map((f, i) => (
+            <div key={i} style={{ padding: '2rem', border: '1px solid #000000', backgroundColor: '#FFFFFF' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '2rem' }}>
+                <h4 style={{ fontSize: '20px', fontWeight: 600, color: '#000000', margin: 0 }}>{f.title}</h4>
+                <span style={{ padding: '0.35rem 1rem', backgroundColor: '#000000', color: '#FFFFFF', fontSize: '15px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  {f.severity || 'High'} Severity
+                </span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '150px 1fr', gap: '1rem', fontSize: '18px', color: '#404040', lineHeight: 1.6 }}>
+                <div style={{ fontWeight: 600, color: '#000000' }}>Description</div>
+                <div>{f.description || 'Vulnerability detected in source code patterns.'}</div>
+                
+                <div style={{ fontWeight: 600, color: '#000000' }}>Impact</div>
+                <div>{f.impact || 'Can lead to unauthorized access or data leakage if exploited.'}</div>
+                
+                <div style={{ fontWeight: 600, color: '#000000' }}>Components</div>
+                <div><span className="font-mono" style={{ backgroundColor: '#F5F5F5', padding: '0.2rem 0.5rem', border: '1px solid #E5E5E5', fontSize: '15px' }}>{f.file}</span></div>
+                
+                <div style={{ fontWeight: 600, color: '#000000' }}>Fix</div>
+                <div>{f.fix || 'Review and refactor the component to eliminate the vulnerability.'}</div>
+                
+                <div style={{ fontWeight: 600, color: '#000000' }}>References</div>
+                <div><a href="#" style={{ color: '#000000', textDecoration: 'underline' }}>{f.references || 'CWE-20: Improper Input Validation'}</a></div>
+              </div>
+            </div>
+          ))}
+          {(!findings || findings.length === 0) && (
+            <div style={{ fontSize: '18px', color: '#404040', padding: '3rem', border: '1px dashed #000000', textAlign: 'center' }}>
+              No critical issues found during analysis.
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* Top Recommended Fixes */}
+      <div>
+        <h3 style={{ fontSize: '28px', fontWeight: 600, marginBottom: '2rem', color: '#000000', borderBottom: '2px solid #000000', paddingBottom: '1rem' }}>
+          Top Recommended Fixes
+        </h3>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          {recommendations?.map((r, i) => (
+            <div key={i} style={{ padding: '1.5rem 2rem', border: '1px solid #E5E5E5', backgroundColor: '#F5F5F5', fontSize: '18px', color: '#000000', display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
+              <span style={{ fontWeight: 600, color: '#A3A3A3', fontSize: '20px' }}>0{i+1}</span>
+              <span style={{ lineHeight: 1.6 }}>{r}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
     </motion.div>
   );
 }

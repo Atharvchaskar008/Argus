@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Search, ArrowRight } from 'lucide-react';
 import { useRepo } from '../context/RepoContext';
 
 export default function LandingExperience() {
@@ -19,18 +18,16 @@ export default function LandingExperience() {
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        style={{ maxWidth: '600px', width: '100%', textAlign: 'center' }}
+        style={{ maxWidth: '700px', width: '100%', textAlign: 'center' }}
       >
-        <h1 style={{ fontSize: '3rem', fontWeight: 300, marginBottom: '1rem', letterSpacing: '-0.03em' }}>
-          Code Intelligence,<br/>
-          <span style={{ fontWeight: 600 }}>Simplified.</span>
+        <h1 style={{ fontSize: '56px', fontWeight: 600, marginBottom: '1.5rem', letterSpacing: '-0.03em', color: '#000000', lineHeight: 1.1 }}>
+          Understand Any Repository
         </h1>
-        <p style={{ color: 'var(--color-gray-500)', marginBottom: '3rem', fontSize: '1.125rem' }}>
-          Enter a GitHub repository URL to generate a comprehensive AI-powered architecture, security, and maintainability report.
+        <p style={{ color: '#404040', marginBottom: '4rem', fontSize: '18px', fontWeight: 400, lineHeight: 1.5 }}>
+          Security intelligence, architecture understanding, and AI-powered repository conversations.
         </p>
 
-        <form onSubmit={handleSubmit} style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-          <Search size={20} style={{ position: 'absolute', left: '1.5rem', color: 'var(--color-gray-400)' }} />
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem' }}>
           <input
             type="text"
             value={url}
@@ -40,30 +37,36 @@ export default function LandingExperience() {
             className="font-mono"
             style={{
               width: '100%',
-              padding: '1.25rem 4rem 1.25rem 3.5rem',
-              fontSize: '1rem',
-              borderRadius: '8px',
-              border: '1px solid var(--color-border)',
+              padding: '1.25rem 1.5rem',
+              fontSize: '18px',
+              borderRadius: '0',
+              border: '1px solid #000000',
+              backgroundColor: '#FFFFFF',
+              color: '#000000',
               outline: 'none',
-              transition: 'border-color 0.2s, box-shadow 0.2s',
+              textAlign: 'center',
+              transition: 'background-color 0.2s',
             }}
-            onFocus={(e) => { e.target.style.borderColor = 'var(--color-fg)'; e.target.style.boxShadow = '0 0 0 1px var(--color-fg)'; }}
-            onBlur={(e) => { e.target.style.borderColor = 'var(--color-border)'; e.target.style.boxShadow = 'none'; }}
+            onFocus={(e) => { e.target.style.backgroundColor = '#F5F5F5'; }}
+            onBlur={(e) => { e.target.style.backgroundColor = '#FFFFFF'; }}
           />
           <button 
             type="submit" 
             disabled={isAnalyzing || !url.trim()}
             style={{
-              position: 'absolute', right: '0.5rem',
-              padding: '0.75rem',
-              backgroundColor: url.trim() ? 'var(--color-fg)' : 'transparent',
-              color: url.trim() ? 'var(--color-bg)' : 'var(--color-gray-400)',
-              border: 'none', borderRadius: '6px',
+              padding: '1.25rem 3rem',
+              fontSize: '18px',
+              fontWeight: 600,
+              backgroundColor: url.trim() && !isAnalyzing ? '#000000' : '#F5F5F5',
+              color: url.trim() && !isAnalyzing ? '#FFFFFF' : '#A0A0A0',
+              border: url.trim() && !isAnalyzing ? '1px solid #000000' : '1px solid #E5E5E5',
+              borderRadius: '0',
               cursor: url.trim() && !isAnalyzing ? 'pointer' : 'not-allowed',
-              transition: 'all 0.2s'
+              transition: 'all 0.2s',
+              width: 'fit-content'
             }}
           >
-            {isAnalyzing ? <span style={{ fontSize: '0.875rem', fontWeight: 500 }}>...</span> : <ArrowRight size={20} />}
+            {isAnalyzing ? 'Analyzing...' : 'Analyze Repository'}
           </button>
         </form>
       </motion.div>
