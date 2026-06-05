@@ -131,3 +131,21 @@ def _write_file(session_id: str, data: dict) -> None:
     path = _path(session_id)
     export = {k: v for k, v in data.items() if not str(k).startswith("_")}
     path.write_text(json.dumps(export, indent=2), encoding="utf-8")
+
+
+def list_sessions() -> list[dict]:
+    """Scan OUTPUTS_DIR for *_live.json session files and return metadata."""
+    sessions = []
+    with _lock:
+        for p in OUTPUTS_DIR.glob("*_live.json"):
+            try:
+                data = json.loads(p.read_text(encoding="utf-8"))
+                sessions.append({
+                    "id": data.get("id"),
+                    "status": data.get("status"),
+                    "repo_url": data.get("repo_url"),
+                })
+            except Exception:
+                pass
+    return sessions
+
