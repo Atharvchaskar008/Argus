@@ -1,210 +1,242 @@
-# 🧠 RepoSense
+# RepoSense
 
-**Autonomous Graph-Native Engineering Mission Control**
+RepoSense is an autonomous, graph-native engineering mission control platform built on Python and Flask. It deploys a swarm of specialized agents to deeply analyze public GitHub repositories, rendering a live dependency graph and exposing real-time events via an SSE (Server-Sent Events) live stream. The platform goes beyond static syntax checks by performing heuristic security scanning (alongside OSV CVE dependency scanning) and leveraging powerful LLMs (Gemini, OpenAI, Anthropic, or local Ollama) to generate architectural insights, blast radius impact analysis, and automated fix patches that await human approval—all seamlessly integrated with no frontend changes needed.
 
-Live, AI-powered GitHub repository intelligence platform that orchestrates multiple specialized AI agents to clone, analyze, and generate actionable insights for any public GitHub repository—providing a comprehensive security, architecture, and code quality overview in seconds.
+## Features
 
-[![Python Version](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
-[![Flask](https://img.shields.io/badge/flask-production-green.svg)](https://flask.palletsprojects.com/)
-[![JacLang](https://img.shields.io/badge/jaclang-orchestration-blueviolet)](https://github.com/Jaseci-Labs/jaclang)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+- **Dependency Graph Map:** Dynamically parses and renders Python repository module imports into a spatial graph memory.
+- **Security Scanning:** Detects 9 critical security patterns heuristics.
+- **OSV CVE Scanning:** Analyzes `requirements.txt` and `package.json` for known vulnerabilities via the OSV API.
+- **Blast Radius Impact Analysis:** Calculates downstream impact of files and vulnerabilities using graph traversal.
+- **LLM Summary:** Multi-provider LLM support (Gemini, OpenAI, Anthropic) with a local heuristic fallback for deep architectural insights.
+- **Fix Patch Generation:** Generates actionable code fixes for vulnerabilities.
+- **Human Approval Mode:** Fixes pause workflow execution and await supervisor approval before finalizing.
+- **Live SSE Stream:** Watch agents traverse and analyze the codebase in real-time.
+- **Session Export:** Download full analysis reports in JSON format.
+- **Dual-Repo Comparison:** Compare two repositories side-by-side using the `/compare` endpoints.
+- **Rate Limiting:** Protects the analysis endpoints from abuse.
+- **Session Cleanup:** Automatically deletes stale sessions and artifacts from disk.
 
----
+## Tech Stack
 
-## 📖 Overview
+| Layer | Technology |
+|---|---|
+| **Backend** | Python 3.11, Flask 3.x, flask-cors |
+| **LLM** | Gemini 2.0 Flash, GPT-4o-mini, Claude Haiku (any one optional) |
+| **Graph** | NetworkX, `graph/memory.py` (GraphMemory) |
+| **Parsing** | Python `ast` module, GitPython |
+| **Transport** | Server-Sent Events (SSE) |
+| **Deployment** | Procfile (`web: python server.py`), runtime.txt (`python-3.11.9`) |
 
-RepoSense exists to bridge the gap between static code analysis and true engineering understanding. Traditional tools just report syntax errors. RepoSense deploys a **Graph-Native Autonomous Agent Swarm** that builds a deep, spatial memory map of your repository, understanding how files import each other, where security vulnerabilities lie, and what the true blast radius of a change would be.
-
-## ✨ Key Features
-
-- **📊 Graph-Native Reasoning:** Maps codebases into spatial memory (nodes and edges), allowing agents to traverse relationships instead of just reading flat files.
-- **🤖 Jac Orchestration:** Agent lifecycles and workflows are managed by Jac (Jaseci), utilizing Object-Spatial Programming for complex multi-agent coordination.
-- **🛡️ Autonomous Repository Intelligence:** Deploys a fleet of specialized agents (Dependency, Security, Impact, Fix, Explanation) to independently analyze aspects of the project.
-- **🛠️ Multi-Agent Workflows:** Agents discover tasks dynamically through the graph rather than rigid, linear scripts.
-- **📈 Engineering Insights:** Generates architecture summaries, code quality scores, and maintainability grades.
-- **💬 Repository Understanding:** A conversational AI UI lets you ask questions directly to the agents about the analyzed codebase.
-- **⚡ Real-Time Analysis Pipeline:** Watch the autonomous agents think, scan, and make decisions via a live Server-Sent Events (SSE) mission control dashboard.
-
-## 🏗️ Architecture Overview
-
-RepoSense separates tooling from reasoning:
-
-- **Frontend:** A sleek, glassmorphic UI built with Vanilla JS/CSS communicating via Server-Sent Events (SSE) to display live graph rendering and agent state.
-- **Backend:** A robust Python/Flask layer (`server.py`) that acts as the HTTP transport and UI server.
-- **Jac Layer:** The brains of the operation (`mission.jac`). It owns orchestration, agent lifecycles, graph memory, and task propagation.
-- **Orchestration Flow:** Agents are spawned into a spatial graph. The DependencyAgent builds the initial code graph, which the SecurityAgent traverses. Tasks are generated natively within the graph and picked up by subsequent agents.
-- **Graph Reasoning:** Uses Jac's walker paradigm. Agents traverse `FileNode`s and `RepoNode`s, generating `VulnerabilityNode`s and `TaskNode`s based on findings.
-- **Intelligence Pipeline:** Dependencies → Code Quality → Security Scanning → Blast Radius Impact → Fix Generation → Human Approval.
-
-## 🗺️ Workflow Architecture
-
-<img width="1561" height="686" alt="image" src="https://github.com/user-attachments/assets/47097a09-ded5-4bab-80cc-bdf78422e4c1" />
-
-
-*The workflow begins with a GitHub URL input. The system clones the repository, parses the AST to build a dependency graph, and then deploys Jac agents. The agents traverse the spatial graph, running LLM heuristics and static scans, eventually proposing fixes back to the UI.*
-
-## ⚙️ How It Works
-
-1. **Initialization:** The user submits a public GitHub URL to the Mission Control dashboard.
-2. **Cloning & Parsing (DependencyAgent):** The repo is cloned locally. Python utilities parse the AST to extract imports and build the structural Graph Memory.
-3. **Security Scan (SecurityAgent):** The agent walks the graph, detecting high-risk patterns and attaching `VulnerabilityNode`s to the relevant `FileNode`s.
-4. **Blast Radius (ImpactAgent):** Traverses the graph to determine the impact of a vulnerability, finding all dependent modules.
-5. **AI Synthesis (ExplanationAgent):** Consolidates findings, generating a repository summary, tech stack breakdown, and plain-English insights.
-6. **Patch Generation (FixAgent):** AI generates actionable fixes for detected vulnerabilities, issuing `ApprovalNode`s that pause the workflow to wait for Human-in-the-Loop supervisor approval.
-
-## 💻 Tech Stack
-
-- **Frontend:** HTML5, Vanilla JavaScript, CSS3 (Glassmorphism design system)
-- **Backend Framework:** Python 3.10+, Flask (SSE/Async capabilities)
-- **AI / Agent Orchestration:** JacLang (Jaseci), OpenAI, Google Gemini
-- **Code Parsing:** `ast` (Python), GitPython
-- **Graph Visualization:** D3-style custom SVG graph renderer
-
-## 📁 Project Structure
+## Project Structure
 
 ```text
-├── .env                  # Environment variables (Keys & Config)
-├── server.py             # Flask HTTP & SSE Transport Layer
-├── orchestrator.py       # Python pipeline wrapper
-├── main.jac / mission.jac# Jac agent orchestration logic
-├── config.py             # Project configuration
-├── requirements.txt      # Python dependencies
-├── frontend/             # Static UI assets
-│   ├── index.html        # Mission Control Dashboard
-│   ├── style.css         # Styling and animations
-│   └── app.js            # Live SSE consumer and graph logic
-└── utils/                # Stateless Python utilities
-    ├── code_quality.py   # Complexity & quality metrics
-    ├── graph_builder.py  # AST & dependency mapping
-    ├── repo_cloner.py    # GitHub repository cloning
-    └── security_scanner.py # Heuristic vulnerability scanning
+├── .env.example             # Example environment variable configuration
+├── API_REFERENCE.md         # Detailed API route documentation
+├── check_local.py           # Local startup health verification script
+├── config.py                # Global application configuration and environment loader
+├── orchestrator.py          # Core pipeline managing analysis and agent coordination
+├── Procfile                 # Deployment instructions for PaaS (e.g. Heroku)
+├── README.md                # Project documentation (this file)
+├── requirements.txt         # Python dependency definitions
+├── runtime.txt              # Specifies Python version for deployment
+├── server.py                # Main Flask application and API route definitions
+├── agents/                  # Specialized LLM-powered analysis agents
+├── bridge/                  # JacLang interoperability bindings
+├── frontend/                # Static assets (HTML, CSS, JS) for the Mission Control UI
+│   ├── app.js               # Frontend logic for SSE consuming and graph rendering
+│   ├── index.html           # Main dashboard markup
+│   └── style.css            # Dashboard styling
+├── graph/                   # Graph-native memory management
+│   ├── memory.py            # GraphMemory class for spatial node/edge storage
+│   └── mission_engine.py    # Mission controller driving graph traversal
+├── nodes/                   # Definitions for graph node types (FileNode, TaskNode, etc)
+├── tests/                   # Pytest test suite for the backend
+│   └── test_backend.py      # E2E health and integration tests for the API
+└── utils/                   # Helper modules for parsing, security, and LLM access
+    ├── code_quality.py      # AST-based complexity and maintainability metrics
+    ├── github_api.py        # GitHub API helpers (e.g., contributor fetching)
+    ├── github_tools.py      # OSV CVE scanning and dependency helpers
+    ├── graph_builder.py     # AST dependency graph parser
+    ├── llm_client.py        # Unified interface for Gemini, OpenAI, and Anthropic
+    ├── rate_limiter.py      # In-memory IP-based rate limiting
+    ├── repo_cloner.py       # Git repository cloning logic
+    ├── repo_validate.py     # Input validation and SSRF protection for URLs
+    ├── security_scanner.py  # Regex-based vulnerability heuristic scanner
+    └── snapshot.py          # Session state persistence and JSON management
 ```
 
-## 🛠️ Installation Guide
+## Prerequisites
 
-Follow these steps to set up the project for development and contribution.
+- Python 3.11+ (3.10 minimum)
+- Git
+- At least one API key (or none — heuristic mode works with zero keys)
+- pip
 
-### Prerequisites
+## Local Setup
 
-- **Python 3.10+** (Ensure Python is added to your system PATH)
-- **Git**
-- Valid API Keys (GitHub Personal Access Token, OpenAI, Gemini)
-
-### 1. Cloning the Repository
-
+**Step 1 — Clone**
 ```bash
 git clone <your-repo-url>
 cd reposense
 ```
 
-### 2. Environment Setup
-
-It is highly recommended to use a virtual environment.
-
+**Step 2 — Virtual environment**
 ```bash
-# Windows
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-
 # Mac/Linux
 python3 -m venv .venv
 source .venv/bin/activate
+
+# Windows PowerShell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
 ```
 
-### 3. Dependency Installation
-
+**Step 3 — Install dependencies**
 ```bash
 pip install -r requirements.txt
 ```
 
-### 4. Environment Variables
-
-Create a `.env` file in the root directory (same level as `server.py`).
-
-```env
-GITHUB_TOKEN=your_github_token
-GEMINI_API_KEY=your_gemini_key
-OPENAI_API_KEY=your_openai_key
-
-PORT=8000
-LOW_COST_MODE=false
+**Step 4 — Create .env**
+Copy `.env.example` to `.env`:
+```bash
+cp .env.example .env   # Mac/Linux
+copy .env.example .env # Windows
 ```
+Edit `.env` and fill in at least `GITHUB_TOKEN` (free, needed for GitHub metadata). All LLM keys are optional — the system works without them using heuristic mode.
 
-### 5. Running the Backend & Frontend
-
-The Flask server handles both the backend API and the static frontend UI.
-
+**Step 5 — Run**
 ```bash
 python server.py
+# Server starts at http://localhost:8000
 ```
 
-*Note: The frontend must be accessed via `http://localhost:8000` (not `file://`) to enable Server-Sent Events (SSE) for the live dashboard.*
+**Step 6 — Verify**
+In a new terminal (while the server is running), execute the health checker:
+```bash
+python check_local.py
+```
 
-### 6. Jac Setup (Optional Direct Usage)
+## Environment Variables
 
-While `server.py` wraps the Jac execution, you can run the mission directly using Jac for testing:
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `GITHUB_TOKEN` | Yes (for metadata) | None | Authenticates with GitHub API. |
+| `GEMINI_API_KEY` | Optional | None | API key for Google Gemini models. |
+| `OPENAI_API_KEY` | Optional | None | API key for OpenAI models. |
+| `ANTHROPIC_API_KEY` | Optional | None | API key for Anthropic models. |
+| `PORT` | No | 8000 | The port on which the Flask server runs. |
+| `LOW_COST_MODE` | No | false | When `true`, avoids heavy LLM usage in favor of heuristics. |
+| `MAX_REPO_FILES` | No | 8000 | Maximum number of files to process per repository. |
+| `CLONE_TIMEOUT_SEC` | No | 120 | Timeout duration for repository cloning. |
+| `SESSION_MAX_AGE_HOURS` | No | 24 | Number of hours before sessions are purged. |
+| `USE_LOCAL_MODELS` | No | false | Set to `true` to use local Ollama models. |
+| `LOCAL_MODEL` | No | None | Local Ollama model identifier. |
+| `OLLAMA_BASE_URL` | No | None | Base URL for the Ollama instance. |
+| `FIX_AGENT_MODEL` | No | None | Specific model name for the FixAgent. |
+| `EXPLANATION_AGENT_MODEL` | No | None | Specific model name for the ExplanationAgent. |
+| `OPENAI_MODEL` | No | None | Override for OpenAI default model. |
+| `GEMINI_MODEL` | No | None | Override for Gemini default model. |
+
+## Running Without API Keys
+
+RepoSense features a robust **Heuristic Mode** for cost-free operation. 
+
+**What works:** repository cloning, dependency graph generation, regex security scanning, OSV CVE scanning, blast radius impact analysis, heuristic fallback summaries, template fix patches, SSE streaming, and all backend endpoints.
+
+**What needs a key:** richer AI architectural summaries, and LLM-generated code diffs.
+
+To enforce this mode, set `LOW_COST_MODE=true` in your `.env`.
+
+## API Reference
+
+| Method | Endpoint | Description | Request Body | Response |
+|---|---|---|---|---|
+| GET | `/health` | Live service health check | N/A | `{"status": "ok", ...}` |
+| POST | `/analyze` | Starts repository analysis | `{"repo_url": "url"}` | `{"session_id": "sid", ...}` |
+| GET | `/stream/<sid>` | SSE stream for real-time progress | N/A | Stream |
+| GET | `/session/<sid>` | Gets full session state details | N/A | `{"status": "...", ...}` |
+| GET | `/sessions` | Lists lightweight session metadata | N/A | `[{...}, ...]` |
+| DELETE | `/session/<sid>` | Deletes session and artifacts | N/A | `{"deleted": true}` |
+| POST | `/approve_fix` | Approves or rejects a suggested fix | `{"session_id": "sid", ...}`| `{"success": true}` |
+| POST | `/query` / `/chat` | Conversational query over session | `{"session_id": "sid", ...}`| `{"answer": "..."}` |
+| GET | `/export/<sid>` | Downloads JSON analysis report | N/A | JSON File Download |
+| GET | `/report/<sid>` | Retrieves analysis as JSON payload| N/A | JSON Payload |
+| GET | `/cve/<sid>` | Retrieves known CVEs in graph | N/A | `[{...}]` |
+| POST | `/compare` | Starts parallel dual-repo analysis | `{"repos": ["url1", "url2"]}`| `{"comparison_id": "...", ...}` |
+| GET | `/compare/result?a=&b=` | Side-by-side comparison summary| N/A | `{"a": {...}, "b": {...}}` |
+
+## Example: Analyze a Repository (curl)
+
+**a) Start analysis:**
+```bash
+curl -X POST http://localhost:8000/analyze \
+     -H "Content-Type: application/json" \
+     -d '{"repo_url": "https://github.com/pallets/flask"}'
+```
+
+**b) Poll session status:**
+```bash
+curl http://localhost:8000/session/<session_id>
+```
+
+**c) Stream live events (terminal):**
+```bash
+curl -N http://localhost:8000/stream/<session_id>
+```
+
+**d) Export report:**
+```bash
+curl http://localhost:8000/export/<session_id> -o report.json
+```
+
+## Agents
+
+| Agent | Role | Uses LLM? | Key needed |
+|---|---|---|---|
+| **DependencyAgent** | Maps modules and builds the spatial dependency graph. | No | No |
+| **SecurityAgent** | Scans for vulnerabilities (regex + OSV API) and marks Graph nodes. | No | No |
+| **ImpactAgent** | Calculates graph propagation and blast radius. | No | No |
+| **FixAgent** | Proposes code patches for detected vulnerabilities. | Yes | Yes (Optional) |
+| **MonitorAgent** | Intercepts requests for human-in-the-loop approval. | No | No |
+| **ExplanationAgent** | Synthesizes all findings into plain English architectural insights. | Yes | Yes (Optional) |
+
+## Security Patterns Detected
+
+The `security_scanner.py` applies heuristics to detect the following 9 critical risks:
+- `hardcoded_secret`
+- `eval_usage`
+- `exec_usage`
+- `subprocess_shell`
+- `sql_injection`
+- `pickle_load`
+- `dangerous_import`
+- `xss_risk`
+- `open_redirect`
+- `debug_mode`
+
+## Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| **"python not found"** | Use `python3` or `py -3.11`. |
+| **"No module named flask"** | Activate venv, run `pip install -r requirements.txt`. |
+| **"Clone failed"** | Repo must be public; check `GITHUB_TOKEN`. |
+| **"No AI summaries"** | Set `GEMINI_API_KEY` or set `LOW_COST_MODE=true`. |
+| **"Port already in use"** | Set `PORT=8001` in `.env`. |
+| **SSE not streaming** | Access via `http://localhost:8000`, NOT `file://`. |
+| **jaclang import error** | Run `pip install jaclang>=0.15` or set `USE_LOCAL_MODELS=false`. |
+
+## Running Tests
 
 ```bash
-# Windows
-set SESSION_ID=demo& set REPO_URL=https://github.com/pallets/flask& jac run mission.jac
-
-# Mac/Linux
-SESSION_ID=demo REPO_URL=https://github.com/pallets/flask jac run mission.jac
+pytest tests/test_backend.py -v
 ```
 
-### Troubleshooting
+## Contributing
 
-- **`python` not found:** Ensure Python 3.10+ is in your PATH, or use `py -3.11 server.py`.
-- **No live updates:** Ensure you are accessing the app via `localhost` and not opening the HTML file directly.
-- **Cloning fails:** Ensure the target repository is public and accessible.
+We follow conventional commit style (`feat:`, `fix:`, `refactor:`, `test:`, `docs:`). Make one commit per logical change and ensure absolutely no secrets are committed in `.env`.
 
-## 📚 API Reference
+## License
 
-| Method | Path | Description |
-|---|---|---|
-| GET | `/` | Serves the Mission Control dashboard UI. |
-| GET | `/health` | Live connectivity and configuration check. |
-| POST | `/analyze` | Starts repository analysis. |
-| GET | `/stream/<session_id>` | SSE stream for real-time analysis progress. |
-| GET | `/session/<session_id>` | Returns full session details. |
-| GET | `/sessions` | Returns lightweight metadata for all active sessions. |
-| DELETE | `/session/<session_id>` | Deletes an active session and its artifacts. |
-| POST | `/approve_fix` | Approves or rejects a suggested fix. |
-| POST | `/query` / `/chat` | Conversational query over session state. |
-| GET | `/export/<session_id>` | Downloads complete analysis as a JSON file. |
-| GET | `/report/<session_id>` | Retrieves complete analysis as JSON payload. |
-| POST | `/compare` | Starts parallel analysis of two repositories. |
-| GET | `/compare/result` | Returns side-by-side comparison. |
-
-## 🚀 Quick Start
-
-If your environment is ready, start the application in one command:
-
-```powershell
-.\start.ps1
-```
-Then navigate to `http://localhost:8000`.
-
-## 🤝 Contributing
-
-We welcome contributions! To get started:
-
-1. Fork the repository.
-2. Create a new feature branch (`git checkout -b feature/amazing-feature`).
-3. Commit your changes with descriptive messages (`git commit -m 'feat: added amazing feature'`).
-4. Push to the branch (`git push origin feature/amazing-feature`).
-5. Open a Pull Request.
-
-Please ensure your code passes standard linting (`flake8` / `black`) and doesn't break existing agent workflows in `mission.jac`.
-
-## 🔮 Future Improvements
-
-- [ ] **Multi-Language AST Parsing:** Expand beyond Python (JavaScript/TypeScript, Go, Rust).
-- [ ] **Custom Agent Modules:** Allow users to define their own Jac agents and plug them into the swarm.
-- [ ] **CI/CD Integration:** Package RepoSense as a GitHub Action.
-- [ ] **Vector Memory:** Integrate Pinecone or ChromaDB for long-term project memory across multiple analysis runs.
-n*
-
-## 📜 License
-
-Distributed under the MIT License. See `LICENSE` for more information.
+MIT

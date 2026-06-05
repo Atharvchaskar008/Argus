@@ -6,5 +6,6 @@ gitpython>=3.1
 networkx>=3.0
 google-generativeai>=0.8
 openai>=1.0
-jaclang>=0.15
 anthropic>=0.25
+jaclang>=0.15
+pytest>=8.0
