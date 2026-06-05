@@ -8,6 +8,7 @@ import urllib.error
 import urllib.request
 
 from config import (
+    ANTHROPIC_API_KEY,
     GEMINI_API_KEY,
     GEMINI_MODEL,
     GEMINI_TIMEOUT_SEC,
@@ -32,7 +33,7 @@ def generate(prompt: str, system: str = "") -> tuple[str, str]:
     Generate text from prompt.
     Returns (text, provider) where provider is gemini|openai|heuristic.
     """
-    if LOW_COST_MODE and not GEMINI_API_KEY and not OPENAI_API_KEY:
+    if LOW_COST_MODE and not GEMINI_API_KEY and not OPENAI_API_KEY and not ANTHROPIC_API_KEY:
         return _heuristic(prompt), "heuristic"
 
     full_prompt = f"{system}\n\n{prompt}".strip() if system else prompt
@@ -46,6 +47,11 @@ def generate(prompt: str, system: str = "") -> tuple[str, str]:
         text = _openai(full_prompt, system)
         if text:
             return text, "openai"
+
+    if ANTHROPIC_API_KEY:
+        text = _anthropic(full_prompt, system)
+        if text:
+            return text, "anthropic"
 
     log.warning("LLM providers unavailable or failed; falling back to heuristic output")
     return _heuristic(prompt), "heuristic"
@@ -78,6 +84,11 @@ def complete(
             text = _openai(full_prompt, system)
             if text:
                 return {"text": text, "source": "openai"}
+
+        if ANTHROPIC_API_KEY:
+            text = _anthropic(full_prompt, system)
+            if text:
+                return {"text": text, "source": "anthropic"}
 
         log.warning("Forced LLM request failed; returning heuristic fallback")
         return {"text": _heuristic(prompt), "source": "heuristic"}
@@ -152,4 +163,19 @@ def _openai(prompt: str, system: str) -> str | None:
         return content.strip() if isinstance(content, str) else None
     except Exception as exc:
         log.warning("OpenAI request failed: %s", exc)
+        return None
+
+
+def _anthropic(prompt: str, system: str = "") -> str | None:
+    try:
+        import anthropic
+        client = anthropic.Anthropic(api_key=__import__('config').ANTHROPIC_API_KEY)
+        messages = [{"role": "user", "content": prompt}]
+        kwargs = {"model": "claude-haiku-4-5-20251001", "max_tokens": 2048, "messages": messages}
+        if system:
+            kwargs["system"] = system
+        resp = client.messages.create(**kwargs)
+        return resp.content[0].text.strip() if resp.content else None
+    except Exception as exc:
+        log.warning("Anthropic request failed: %s", exc)
         return None
