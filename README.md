@@ -21,12 +21,12 @@ RepoSense is an autonomous, graph-native engineering mission control platform bu
 
 | Layer | Technology |
 |---|---|
-| **Backend** | Python 3.11, Flask 3.x, flask-cors |
+| **Backend** | Python 3.12, Flask 3.x, flask-cors |
 | **LLM** | Gemini 2.0 Flash, GPT-4o-mini, Claude Haiku (any one optional) |
 | **Graph** | NetworkX, `graph/memory.py` (GraphMemory) |
 | **Parsing** | Python `ast` module, GitPython |
 | **Transport** | Server-Sent Events (SSE) |
-| **Deployment** | Procfile (`web: python server.py`), runtime.txt (`python-3.11.9`) |
+| **Deployment** | Procfile (`web: python server.py`), runtime.txt (`python-3.12.10`) |
 
 ## Project Structure
 
@@ -43,10 +43,11 @@ RepoSense is an autonomous, graph-native engineering mission control platform bu
 ├── server.py                # Main Flask application and API route definitions
 ├── agents/                  # Specialized LLM-powered analysis agents
 ├── bridge/                  # JacLang interoperability bindings
-├── frontend/                # Static assets (HTML, CSS, JS) for the Mission Control UI
-│   ├── app.js               # Frontend logic for SSE consuming and graph rendering
-│   ├── index.html           # Main dashboard markup
-│   └── style.css            # Dashboard styling
+├── frontend/                # Vite + React Mission Control UI (built to frontend/dist)
+│   ├── index.html           # Vite entry markup
+│   ├── package.json         # Frontend dependencies and build scripts
+│   └── src/                 # React components, context, and styles
+├── frontend_legacy/         # Previous vanilla HTML/CSS/JS dashboard
 ├── graph/                   # Graph-native memory management
 │   ├── memory.py            # GraphMemory class for spatial node/edge storage
 │   └── mission_engine.py    # Mission controller driving graph traversal
@@ -68,7 +69,8 @@ RepoSense is an autonomous, graph-native engineering mission control platform bu
 
 ## Prerequisites
 
-- Python 3.11+ (3.10 minimum)
+- Python 3.12+ (required by `jaclang>=0.15`)
+- Node.js 20.19+ or 22.12+ (to build the frontend)
 - Git
 - At least one API key (or none — heuristic mode works with zero keys)
 - pip
@@ -105,13 +107,22 @@ copy .env.example .env # Windows
 ```
 Edit `.env` and fill in at least `GITHUB_TOKEN` (free, needed for GitHub metadata). All LLM keys are optional — the system works without them using heuristic mode.
 
-**Step 5 — Run**
+**Step 5 — Build the frontend**
+The Flask server serves the compiled React app from `frontend/dist`, so build it before starting:
+```bash
+cd frontend
+npm ci
+npm run build
+cd ..
+```
+
+**Step 6 — Run**
 ```bash
 python server.py
 # Server starts at http://localhost:8000
 ```
 
-**Step 6 — Verify**
+**Step 7 — Verify**
 In a new terminal (while the server is running), execute the health checker:
 ```bash
 python check_local.py

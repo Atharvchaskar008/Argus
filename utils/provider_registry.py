@@ -1,6 +1,6 @@
 import os
 import logging
-from config import settings
+import config as settings
 
 log = logging.getLogger("reposense.registry")
 

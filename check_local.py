@@ -6,6 +6,7 @@ Then in another terminal:        python check_local.py
 """
 
 import json
+import re
 import sys
 import time
 import urllib.request
@@ -51,7 +52,7 @@ print("\n🔍 RepoSense Local Health Check")
 print(f"   Target: {BASE}\n")
 
 print("── Core routes ──")
-check("GET /              (frontend HTML)",   f"{BASE}/")
+index_html = check("GET /              (frontend HTML)",   f"{BASE}/")
 resp = check("GET /health          (service ok)",   f"{BASE}/health")
 if resp:
     h = json.loads(resp)
@@ -100,8 +101,12 @@ check("POST /compare (wrong count → 400)", f"{BASE}/compare",
       method="POST", body={"repos": ["https://github.com/pallets/flask"]}, expect_status=400)
 
 print("\n── Static assets ──")
-check("GET /style.css",   f"{BASE}/style.css")
-check("GET /app.js",      f"{BASE}/app.js")
+asset_paths = re.findall(r'(?:href|src)="(/[^"]+\.(?:css|js))"', index_html or "")
+if asset_paths:
+    for path in asset_paths:
+        check(f"GET {path}", f"{BASE}{path}")
+else:
+    print(f"  {WARN}  No bundled assets found in index.html - run 'npm run build' in frontend/")
 
 print("\n── Rate limiting ──")
 print(f"  {WARN}  Sending 11 rapid /analyze requests to test rate limit...")
