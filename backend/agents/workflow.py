@@ -362,11 +362,20 @@ def impact_agent_node(state: AgentState) -> AgentState:
         nx_graph.add_edge(edge["source"], edge["target"], kind=edge["kind"])
 
     # Determine target module for blast radius
-    target = "auth"
+    target = None
     for f in state["files"]:
         if "auth" in f["path"].lower():
             target = f["path"].replace(".py", "").replace("/", ".")
             break
+
+    if not target and nx_graph.nodes:
+        # Pick node with highest out-degree (most dependencies / most depended upon)
+        degrees = dict(nx_graph.degree())
+        if degrees:
+            target = max(degrees, key=degrees.get)
+
+    if not target:
+        target = "core"
 
     impact = impact_analysis(nx_graph, target) if nx_graph.nodes else {}
     state["impact"] = impact

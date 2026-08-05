@@ -102,9 +102,17 @@ def scan_file(file_path: Path, rel_path: str) -> list:
     except OSError:
         return findings
 
+    # Skip security scanner itself to avoid false positives from pattern definitions
+    if "security_scanner" in rel_path:
+        return findings
+
     lines = content.splitlines()
     for rule_id, severity, pattern, title, recommendation in PATTERNS:
         for i, line in enumerate(lines, 1):
+            stripped = line.strip()
+            # Ignore comments and pattern definition lines
+            if stripped.startswith("#") or stripped.startswith("//") or stripped.startswith("*"):
+                continue
             if pattern.search(line):
                 findings.append(
                     {
@@ -114,7 +122,7 @@ def scan_file(file_path: Path, rel_path: str) -> list:
                         "file": rel_path,
                         "line": i,
                         "title": title,
-                        "snippet": line.strip()[:120],
+                        "snippet": stripped[:120],
                         "recommendation": recommendation,
                         "patch_hint": FIX_TEMPLATES.get(rule_id, ""),
                     }
