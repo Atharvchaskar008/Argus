@@ -28,29 +28,6 @@ export default function LandingExperience() {
         <p style={{ color: '#404040', marginBottom: '4rem', fontSize: '18px', fontWeight: 400, lineHeight: 1.5 }}>
           Security intelligence, architecture understanding, and AI-powered repository conversations.
         </p>
-  const [url, setUrl] = useState('');
-  const { startAnalysis, isAnalyzing } = useRepo();
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (url.trim()) {
-      startAnalysis(url.trim());
-    }
-  };
-
-  return (
-    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        style={{ maxWidth: '700px', width: '100%', textAlign: 'center' }}
-      >
-        <h1 style={{ fontSize: '56px', fontWeight: 600, marginBottom: '1.5rem', letterSpacing: '-0.03em', color: '#000000', lineHeight: 1.1 }}>
-          Understand Any Repository
-        </h1>
-        <p style={{ color: '#404040', marginBottom: '4rem', fontSize: '18px', fontWeight: 400, lineHeight: 1.5 }}>
-          Security intelligence, architecture understanding, and AI-powered repository conversations.
-        </p>
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem' }}>
           <input
