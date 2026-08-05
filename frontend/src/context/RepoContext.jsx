@@ -66,8 +66,19 @@ export const RepoProvider = ({ children }) => {
     };
   }, []);
 
+  const resetSession = useCallback(() => {
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
+    }
+    setSession(null);
+    setSessionState(null);
+    setLogs([]);
+    setIsAnalyzing(false);
+  }, []);
+
   return (
-    <RepoContext.Provider value={{ session, sessionState, logs, isAnalyzing, startAnalysis }}>
+    <RepoContext.Provider value={{ session, sessionState, logs, isAnalyzing, startAnalysis, resetSession }}>
       {children}
     </RepoContext.Provider>
   );

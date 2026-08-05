@@ -41,9 +41,11 @@ DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "")
 GROK_API_KEY = os.getenv("GROK_API_KEY", "")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
+OPENROUTER_DEFAULT_MODEL = os.getenv("OPENROUTER_DEFAULT_MODEL", "google/gemini-2.5-flash")
+OPENROUTER_TIMEOUT_SEC = _env_int("OPENROUTER_TIMEOUT_SEC", "60")
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN") or os.getenv("GITHUB_API_KEY", "")
 
-_has_llm = bool(GEMINI_API_KEY or OPENAI_API_KEY or DEEPSEEK_API_KEY or GROK_API_KEY or ANTHROPIC_API_KEY or GROQ_API_KEY or OPENROUTER_API_KEY)
+_has_llm = bool(OPENROUTER_API_KEY or GEMINI_API_KEY or OPENAI_API_KEY or DEEPSEEK_API_KEY or GROK_API_KEY or ANTHROPIC_API_KEY or GROQ_API_KEY)
 LOW_COST_MODE = _env_flag("LOW_COST_MODE", "false" if _has_llm else "true")
 
 USE_LOCAL_MODELS = _env_flag("USE_LOCAL_MODELS", "false")
@@ -51,10 +53,10 @@ LOCAL_MODEL = os.getenv("LOCAL_MODEL", "deepseek-coder")
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 
 MODEL_CONFIG = {
-    "fix_agent": os.getenv("FIX_AGENT_MODEL", "gemini-flash"),
-    "explanation_agent": os.getenv("EXPLANATION_AGENT_MODEL", "gemini-flash"),
-    "security_agent": os.getenv("SECURITY_AGENT_MODEL", "gemini-flash"),
-    "impact_agent": os.getenv("IMPACT_AGENT_MODEL", "gemini-flash"),
+    "fix_agent": os.getenv("FIX_AGENT_MODEL", OPENROUTER_DEFAULT_MODEL),
+    "explanation_agent": os.getenv("EXPLANATION_AGENT_MODEL", OPENROUTER_DEFAULT_MODEL),
+    "security_agent": os.getenv("SECURITY_AGENT_MODEL", OPENROUTER_DEFAULT_MODEL),
+    "impact_agent": os.getenv("IMPACT_AGENT_MODEL", OPENROUTER_DEFAULT_MODEL),
 }
 
 MAX_REPO_FILES = _env_int("MAX_REPO_FILES", "8000")
@@ -74,3 +76,5 @@ AGENT_IDS = [
     "MonitorAgent",
     "ExplanationAgent",
 ]
+import sys
+settings = sys.modules[__name__]

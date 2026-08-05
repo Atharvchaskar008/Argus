@@ -17,7 +17,7 @@ from flask import Flask, Response, jsonify, request, send_from_directory
 from flask_cors import CORS
 from werkzeug.exceptions import HTTPException
 
-from config import ANTHROPIC_API_KEY, GEMINI_API_KEY, GITHUB_TOKEN, OPENAI_API_KEY, PORT
+from config import GITHUB_TOKEN, PORT
 from orchestrator import answer_query, resolve_approval, run_analysis
 from utils import snapshot
 from utils.repo_validate import validate_github_url
@@ -322,6 +322,13 @@ def chat():
         return jsonify({"error": "query required"}), 400
     answer = answer_query(sid, q.strip(), model)
     return jsonify({"answer": answer})
+
+
+@app.route("/models")
+def models_route():
+    """Expose OpenRouter model catalog to the frontend."""
+    from utils.llm_client import list_available_models
+    return jsonify(list_available_models())
 
 
 @app.route("/cve/<session_id>")

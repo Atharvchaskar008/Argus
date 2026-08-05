@@ -1,7 +1,0 @@
-[project]
-name = "reposense"
-version = "0.2.0"
-description = "Graph-native autonomous engineering intelligence platform"
-
-[build]
-entry = "mission.jac"

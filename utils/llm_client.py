@@ -1,27 +1,26 @@
-"""Unified LLM client - Strict single-model mode with robust error handling."""
+"""Unified LLM client - All routes through OpenRouter gateway.
+
+Every model available on OpenRouter (GPT-4o, Claude, Gemini, Llama, Mistral,
+DeepSeek, etc.) is accessible via a single API key and code path.
+"""
 
 from __future__ import annotations
-import json
 import logging
-import urllib.error
-import urllib.request
+from utils.guardrails import sanitize_prompt, enforce_max_length, moderate_content, rate_limit
 import os
 
 from config import (
-    ANTHROPIC_API_KEY,
-    DEEPSEEK_API_KEY,
-    GEMINI_API_KEY,
-    GEMINI_MODEL,
-    GEMINI_TIMEOUT_SEC,
-    GROK_API_KEY,
-    GROQ_API_KEY,
     OPENROUTER_API_KEY,
+    OPENROUTER_DEFAULT_MODEL,
+    OPENROUTER_TIMEOUT_SEC,
+    # Legacy keys kept for backward compat detection
+    GEMINI_API_KEY,
     OPENAI_API_KEY,
-    OPENAI_MODEL,
-    OPENAI_TIMEOUT_SEC,
+    ANTHROPIC_API_KEY,
 )
 
 log = logging.getLogger("reposense.llm")
+
 
 class LLMProviderError(Exception):
     def __init__(self, provider: str, reason: str, fix: str):
@@ -38,50 +37,137 @@ class LLMProviderError(Exception):
             "status": "Failed"
         }
 
+
+# ---------------------------------------------------------------------------
+# Model slug helpers
+# ---------------------------------------------------------------------------
+
+# Map short aliases to full OpenRouter slugs for convenience
+_MODEL_ALIASES: dict[str, str] = {
+    "gemini": "google/gemini-2.5-flash",
+    "gemini-flash": "google/gemini-2.5-flash",
+    "gemini-pro": "google/gemini-2.5-pro",
+    "gpt": "openai/gpt-4o-mini",
+    "gpt-4o": "openai/gpt-4o",
+    "gpt-4o-mini": "openai/gpt-4o-mini",
+    "claude": "anthropic/claude-3-haiku",
+    "claude-haiku": "anthropic/claude-3-haiku",
+    "claude-sonnet": "anthropic/claude-3.5-sonnet",
+    "llama": "meta-llama/llama-3.3-70b-instruct",
+    "llama-70b": "meta-llama/llama-3.3-70b-instruct",
+    "mistral": "mistralai/mistral-small-24b-instruct-2501",
+    "deepseek": "deepseek/deepseek-chat",
+    "deepseek-coder": "deepseek/deepseek-chat",
+    "qwen": "qwen/qwen-2.5-coder-32b-instruct",
+}
+
+
+def resolve_model(model: str | None) -> str:
+    """Resolve a model name/alias to a full OpenRouter slug."""
+    if not model:
+        return OPENROUTER_DEFAULT_MODEL
+    model_lower = model.strip().lower()
+    return _MODEL_ALIASES.get(model_lower, model)
+
+
+# ---------------------------------------------------------------------------
+# Heuristic fallback (no API key)
+# ---------------------------------------------------------------------------
+
 def _heuristic(prompt: str) -> str:
     return (
         "Analysis based on repository structure and static scans. "
-        "Enable GEMINI_API_KEY or OPENAI_API_KEY for richer AI insights."
+        "Enable OPENROUTER_API_KEY for richer AI insights across 200+ models."
     )
 
-def generate(prompt: str, system: str = "", model_provider: str = "gemini") -> tuple[str, str]:
-    """
-    Generate text from prompt. Strict single-provider execution.
-    Raises LLMProviderError on any failure.
-    """
-    full_prompt = f"{system}\n\n{prompt}".strip() if system else prompt
-    provider = (model_provider or "gemini").lower()
 
-    if provider == "gemini":
-        if not GEMINI_API_KEY:
-            raise LLMProviderError("Gemini", "API key missing.", "Add GEMINI_API_KEY to .env file.")
-        return _gemini(full_prompt), "gemini"
-    elif provider in ("openai", "gpt"):
-        if not OPENAI_API_KEY:
-            raise LLMProviderError("OpenAI", "API key missing.", "Add OPENAI_API_KEY to .env file.")
-        return _openai(full_prompt, system), "openai"
-    elif provider in ("anthropic", "claude"):
-        if not ANTHROPIC_API_KEY:
-            raise LLMProviderError("Anthropic", "API key missing.", "Add ANTHROPIC_API_KEY to .env file.")
-        return _anthropic(full_prompt, system), "anthropic"
-    elif provider == "deepseek":
-        if not DEEPSEEK_API_KEY:
-            raise LLMProviderError("DeepSeek", "API key missing.", "Add DEEPSEEK_API_KEY to .env file.")
-        return _deepseek(full_prompt, system), "deepseek"
-    elif provider == "grok":
-        if not GROK_API_KEY:
-            raise LLMProviderError("Grok", "API key missing.", "Add GROK_API_KEY to .env file.")
-        return _grok(full_prompt, system), "grok"
-    elif provider == "groq":
-        if not GROQ_API_KEY:
-            raise LLMProviderError("Groq", "API key missing.", "Add GROQ_API_KEY to .env file.")
-        return _groq(full_prompt, system), "groq"
-    elif provider == "openrouter":
-        if not OPENROUTER_API_KEY:
-            raise LLMProviderError("OpenRouter", "API key missing.", "Add OPENROUTER_API_KEY to .env file.")
-        return _openrouter(full_prompt, system), "openrouter"
-    else:
-        raise LLMProviderError("System", f"Unknown provider: {provider}", "Select a valid provider.")
+# ---------------------------------------------------------------------------
+# OpenRouter gateway (single provider for everything)
+# ---------------------------------------------------------------------------
+
+def _openrouter(prompt: str, system: str = "", model: str = "") -> str:
+    """Call any model via OpenRouter's OpenAI-compatible API."""
+    try:
+        from openai import OpenAI
+
+        client = OpenAI(
+            api_key=OPENROUTER_API_KEY,
+            base_url="https://openrouter.ai/api/v1",
+            timeout=OPENROUTER_TIMEOUT_SEC,
+            max_retries=1,
+        )
+
+        messages = []
+        if system:
+            messages.append({"role": "system", "content": system})
+        messages.append({"role": "user", "content": prompt})
+
+        resolved = resolve_model(model) if model else OPENROUTER_DEFAULT_MODEL
+
+        resp = client.chat.completions.create(
+            model=resolved,
+            messages=messages,
+            max_tokens=2048,
+            temperature=0.3,
+            extra_headers={
+                "HTTP-Referer": "https://reposense.dev",
+                "X-Title": "RepoSense",
+            },
+        )
+
+        content = resp.choices[0].message.content
+        if not content:
+            raise Exception(f"Empty response from OpenRouter ({resolved})")
+        return content.strip()
+
+    except Exception as exc:
+        log.error("OpenRouter failed (model=%s): %s", model, exc)
+        raise LLMProviderError(
+            "OpenRouter",
+            str(exc),
+            "Check your OPENROUTER_API_KEY at https://openrouter.ai/keys and ensure you have credits."
+        )
+
+
+# ---------------------------------------------------------------------------
+# Public API
+# ---------------------------------------------------------------------------
+
+def generate(prompt: str, system: str = "", model: str = "") -> tuple[str, str]:
+    """Generate text using any model via OpenRouter.
+
+    Args:
+        prompt: The user prompt.
+        system: Optional system instruction.
+        model: OpenRouter model slug (e.g. 'openai/gpt-4o') or short alias
+               (e.g. 'gemini', 'claude'). Defaults to OPENROUTER_DEFAULT_MODEL.
+
+    Returns:
+        Tuple of (generated_text, provider_string).
+    """
+    if not OPENROUTER_API_KEY:
+        log.warning("No OPENROUTER_API_KEY set — falling back to heuristic.")
+        return _heuristic(prompt), "heuristic"
+
+    full_prompt = f"{system}\n\n{prompt}".strip() if system else prompt
+    # ---------- Guardrails ----------
+    # 1️⃣ Sanitize
+    safe_prompt = sanitize_prompt(full_prompt)
+    # 2️⃣ Enforce max length (same token limit we use for the API)
+    safe_prompt = enforce_max_length(safe_prompt, max_tokens=2048)
+    # 3️⃣ Moderate (simple profanity filter; raise if blocked)
+    if not moderate_content(safe_prompt):
+        raise ValueError("Prompt failed moderation – contains disallowed content")
+    # 4️⃣ Rate‑limit
+    rate_limit()
+
+    resolved = resolve_model(model)
+    result = _openrouter(safe_prompt, system, resolved)
+    return result, f"openrouter:{resolved}"
+
+
+
+
 
 def complete(
     prompt: str,
@@ -89,114 +175,65 @@ def complete(
     max_tokens: int = 2048,
     temperature: float = 0.3,
     force_llm: bool = False,
-    model_provider: str = "gemini",
+    model: str = "",
 ) -> dict:
+    """Generate with structured return. Used by llm_fixer and other utils."""
     try:
-        text, provider = generate(prompt, system=system, model_provider=model_provider)
+        text, provider = generate(prompt, system=system, model=model)
         return {"text": text, "source": provider}
     except LLMProviderError as e:
         return {"text": f"Error: {e.reason}\nSuggested Fix: {e.fix}", "source": e.provider, "error": e.to_dict()}
     except Exception as e:
         return {"text": f"Unexpected error: {str(e)}", "source": "system"}
 
-def chat(session_context: str, question: str, model_provider: str = "gemini") -> tuple[str, str]:
+
+def chat(session_context: str, question: str, model: str | None = None) -> tuple[str, str]:
+    """Chat about a repository analysis session."""
     prompt = (
         f"You are RepoSense, an expert repository intelligence assistant.\n"
         f"Use ONLY the analysis context below. Be concise and specific.\n\n"
         f"CONTEXT:\n{session_context[:12000]}\n\n"
         f"QUESTION: {question}"
     )
-    return generate(prompt, system="Answer in 2-5 sentences.", model_provider=model_provider)
+    return generate(prompt, system="Answer in 2-5 sentences.", model=model or "")
 
-def _gemini(prompt: str) -> str:
-    try:
-        import google.generativeai as genai
-        genai.configure(api_key=GEMINI_API_KEY)
-        model = genai.GenerativeModel(GEMINI_MODEL)
-        response = model.generate_content(prompt, request_options={"timeout": GEMINI_TIMEOUT_SEC})
-        if response and response.text:
-            return response.text.strip()
-        raise Exception("Empty response from Gemini")
-    except Exception as exc:
-        log.error("Gemini failed: %s", exc)
-        raise LLMProviderError("Gemini", str(exc), "Check if your GEMINI_API_KEY is valid and has quota.")
 
-def _openai(prompt: str, system: str) -> str:
-    try:
-        from openai import OpenAI
-        client = OpenAI(api_key=OPENAI_API_KEY, timeout=OPENAI_TIMEOUT_SEC, max_retries=1)
-        messages = [{"role": "system", "content": system}] if system else []
-        messages.append({"role": "user", "content": prompt})
-        resp = client.chat.completions.create(model=OPENAI_MODEL, messages=messages, max_tokens=2048, temperature=0.3)
-        content = resp.choices[0].message.content
-        if not content: raise Exception("Empty response from OpenAI")
-        return content.strip()
-    except Exception as exc:
-        log.error("OpenAI failed: %s", exc)
-        raise LLMProviderError("OpenAI", str(exc), "Check your OPENAI_API_KEY and billing status.")
+# ---------------------------------------------------------------------------
+# Model listing (for /models endpoint)
+# ---------------------------------------------------------------------------
 
-def _anthropic(prompt: str, system: str = "") -> str:
-    try:
-        import anthropic
-        client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
-        messages = [{"role": "user", "content": prompt}]
-        kwargs = {"model": "claude-3-haiku-20240307", "max_tokens": 2048, "messages": messages}
-        if system: kwargs["system"] = system
-        resp = client.messages.create(**kwargs)
-        if not resp.content: raise Exception("Empty response from Anthropic")
-        return resp.content[0].text.strip()
-    except Exception as exc:
-        log.error("Anthropic failed: %s", exc)
-        raise LLMProviderError("Anthropic", str(exc), "Verify ANTHROPIC_API_KEY and account credits.")
+def list_available_models() -> list[dict]:
+    """Fetch available models from OpenRouter API."""
+    if not OPENROUTER_API_KEY:
+        return []
 
-def _deepseek(prompt: str, system: str) -> str:
     try:
-        from openai import OpenAI
-        client = OpenAI(api_key=DEEPSEEK_API_KEY, base_url="https://api.deepseek.com/v1", timeout=OPENAI_TIMEOUT_SEC)
-        messages = [{"role": "system", "content": system}] if system else []
-        messages.append({"role": "user", "content": prompt})
-        resp = client.chat.completions.create(model="deepseek-chat", messages=messages, max_tokens=2048, temperature=0.3)
-        content = resp.choices[0].message.content
-        if not content: raise Exception("Empty response from DeepSeek")
-        return content.strip()
-    except Exception as exc:
-        raise LLMProviderError("DeepSeek", str(exc), "Check DEEPSEEK_API_KEY.")
+        import urllib.request
+        import json
 
-def _grok(prompt: str, system: str) -> str:
-    try:
-        from openai import OpenAI
-        client = OpenAI(api_key=GROK_API_KEY, base_url="https://api.x.ai/v1", timeout=OPENAI_TIMEOUT_SEC)
-        messages = [{"role": "system", "content": system}] if system else []
-        messages.append({"role": "user", "content": prompt})
-        resp = client.chat.completions.create(model="grok-beta", messages=messages, max_tokens=2048, temperature=0.3)
-        content = resp.choices[0].message.content
-        if not content: raise Exception("Empty response from Grok")
-        return content.strip()
-    except Exception as exc:
-        raise LLMProviderError("Grok", str(exc), "Check GROK_API_KEY.")
+        req = urllib.request.Request(
+            "https://openrouter.ai/api/v1/models",
+            headers={
+                "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                "HTTP-Referer": "https://reposense.dev",
+            },
+        )
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            data = json.loads(resp.read())
 
-def _groq(prompt: str, system: str) -> str:
-    try:
-        from openai import OpenAI
-        client = OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1", timeout=OPENAI_TIMEOUT_SEC)
-        messages = [{"role": "system", "content": system}] if system else []
-        messages.append({"role": "user", "content": prompt})
-        resp = client.chat.completions.create(model="llama3-70b-8192", messages=messages, max_tokens=2048, temperature=0.3)
-        content = resp.choices[0].message.content
-        if not content: raise Exception("Empty response from Groq")
-        return content.strip()
-    except Exception as exc:
-        raise LLMProviderError("Groq", str(exc), "Check GROQ_API_KEY.")
+        models = []
+        for m in data.get("data", []):
+            models.append({
+                "id": m["id"],
+                "name": m.get("name", m["id"]),
+                "context_length": m.get("context_length", 0),
+                "pricing": m.get("pricing", {}),
+            })
 
-def _openrouter(prompt: str, system: str) -> str:
-    try:
-        from openai import OpenAI
-        client = OpenAI(api_key=OPENROUTER_API_KEY, base_url="https://openrouter.ai/api/v1", timeout=OPENAI_TIMEOUT_SEC)
-        messages = [{"role": "system", "content": system}] if system else []
-        messages.append({"role": "user", "content": prompt})
-        resp = client.chat.completions.create(model="meta-llama/llama-3-70b-instruct", messages=messages, max_tokens=2048, temperature=0.3)
-        content = resp.choices[0].message.content
-        if not content: raise Exception("Empty response from OpenRouter")
-        return content.strip()
+        # Sort by name for readability
+        models.sort(key=lambda x: x["name"].lower())
+        return models
+
     except Exception as exc:
-        raise LLMProviderError("OpenRouter", str(exc), "Check OPENROUTER_API_KEY.")
+        log.error("Failed to fetch OpenRouter models: %s", exc)
+        return []

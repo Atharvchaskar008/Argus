@@ -100,8 +100,21 @@ check("POST /compare (wrong count → 400)", f"{BASE}/compare",
       method="POST", body={"repos": ["https://github.com/pallets/flask"]}, expect_status=400)
 
 print("\n── Static assets ──")
-check("GET /style.css",   f"{BASE}/style.css")
-check("GET /app.js",      f"{BASE}/app.js")
+import glob
+import os
+css_files = glob.glob("frontend/dist/assets/*.css")
+js_files = glob.glob("frontend/dist/assets/*.js")
+if css_files:
+    css_name = os.path.basename(css_files[0])
+    check(f"GET /assets/{css_name}", f"{BASE}/assets/{css_name}")
+else:
+    check("GET /style.css (legacy)", f"{BASE}/style.css", critical=False)
+if js_files:
+    js_name = os.path.basename(js_files[0])
+    check(f"GET /assets/{js_name}", f"{BASE}/assets/{js_name}")
+else:
+    check("GET /app.js (legacy)", f"{BASE}/app.js", critical=False)
+
 
 print("\n── Rate limiting ──")
 print(f"  {WARN}  Sending 11 rapid /analyze requests to test rate limit...")

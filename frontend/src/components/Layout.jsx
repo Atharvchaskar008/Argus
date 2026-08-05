@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { Activity, Terminal } from 'lucide-react';
+import { Activity, Terminal, ArrowLeft } from 'lucide-react';
 import { useRepo } from '../context/RepoContext';
 import ActivityCenter from './ActivityCenter';
 
 export default function Layout({ children }) {
-  const { sessionState, isAnalyzing } = useRepo();
+  const { session, sessionState, isAnalyzing, resetSession } = useRepo();
   const [isActivityOpen, setIsActivityOpen] = useState(false);
 
   return (
@@ -15,9 +15,27 @@ export default function Layout({ children }) {
         padding: '0 2rem', backgroundColor: '#FFFFFF', 
         borderBottom: '1px solid #000000' 
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontWeight: 600, fontSize: '1.25rem', letterSpacing: '-0.02em', color: '#000000' }}>
-          <Activity size={24} />
-          RepoSense
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+          {(session || sessionState) && (
+            <button
+              onClick={resetSession}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '0.5rem',
+                padding: '0.4rem 0.8rem', border: '1px solid #000000',
+                backgroundColor: '#000000', color: '#FFFFFF',
+                cursor: 'pointer', fontSize: '14px', fontWeight: 500,
+                borderRadius: '4px', transition: 'all 0.2s'
+              }}
+              title="Return to Home / New Search"
+            >
+              <ArrowLeft size={16} />
+              Back to Search
+            </button>
+          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontWeight: 600, fontSize: '1.25rem', letterSpacing: '-0.02em', color: '#000000' }}>
+            <Activity size={24} />
+            RepoSense
+          </div>
         </div>
         
         <nav style={{ display: 'flex', alignItems: 'center', gap: '2.5rem', fontSize: '15px', fontWeight: 500, color: '#404040' }}>
