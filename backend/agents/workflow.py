@@ -22,6 +22,7 @@ from backend.llm.fixer import generate_fix
 from backend.analyzers.maintainability import analyze_folder_structure, analyze_maintainability
 from backend.analyzers.parser import scan_repo
 from backend.analyzers.readme_analyzer import analyze_readme
+from backend.analyzers.architecture import generate_architecture_analysis
 from backend.core.recommendations import build_recommendations
 from backend.github.repo_cloner import clone_repo
 from backend.github.repo_validate import check_repo_size, validate_github_url
@@ -47,6 +48,7 @@ class AgentState(TypedDict):
     code_quality: Dict[str, Any]
     maintainability: Dict[str, Any]
     structure: Dict[str, Any]
+    architecture_graph: Dict[str, Any]
     fixes: List[Dict[str, Any]]
     approvals: List[Dict[str, Any]]
     agent_states: Dict[str, Dict[str, str]]
@@ -509,6 +511,25 @@ def explanation_agent_node(state: AgentState) -> AgentState:
     return state
 
 
+def architecture_agent_node(state: AgentState) -> AgentState:
+    if state.get("status") == "failed":
+        return state
+        
+    _agent(state, "ArchitectureAgent", "RUNNING", "Generating C4 models and flow diagrams")
+    
+    architecture_data = generate_architecture_analysis(state["repo_path"], state["files"])
+    
+    state["architecture_graph"] = architecture_data
+    state["progress"] = 90
+    
+    _agent(state, "ArchitectureAgent", "COMPLETED", "Architecture analysis complete")
+    _push_snapshot(state, {
+        "architecture_graph": architecture_data
+    })
+    
+    return state
+
+
 def fix_agent_node(state: AgentState) -> AgentState:
     if state.get("status") == "failed":
         return state
@@ -624,6 +645,7 @@ workflow.add_node("dependency_agent", dependency_agent_node)
 workflow.add_node("security_agent", security_agent_node)
 workflow.add_node("impact_agent", impact_agent_node)
 workflow.add_node("explanation_agent", explanation_agent_node)
+workflow.add_node("architecture_agent", architecture_agent_node)
 workflow.add_node("fix_agent", fix_agent_node)
 workflow.add_node("finalize", finalize_node)
 
@@ -632,7 +654,8 @@ workflow.add_edge(START, "dependency_agent")
 workflow.add_edge("dependency_agent", "security_agent")
 workflow.add_edge("security_agent", "impact_agent")
 workflow.add_edge("impact_agent", "explanation_agent")
-workflow.add_edge("explanation_agent", "fix_agent")
+workflow.add_edge("explanation_agent", "architecture_agent")
+workflow.add_edge("architecture_agent", "fix_agent")
 workflow.add_edge("fix_agent", "finalize")
 workflow.add_edge("finalize", END)
 

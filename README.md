@@ -9,7 +9,8 @@ RepoSense is an autonomous, graph-native engineering mission control platform bu
 - **OSV CVE Scanning:** Analyzes `requirements.txt` and `package.json` for known vulnerabilities via the OSV API.
 - **Blast Radius Impact Analysis:** Calculates downstream impact of files and vulnerabilities using graph traversal.
 - **LLM Summary:** Multi-provider LLM support (Gemini, OpenAI, Anthropic) with a local heuristic fallback for deep architectural insights.
-- **Fix Patch Generation:** Generates actionable code fixes for vulnerabilities.
+- **System Architecture Analyzer**: Generates C4 model diagrams and flowcharts of the repository using LLM‑driven analysis, rendered via Mermaid in the UI.
+
 - **Human Approval Mode:** Fixes pause workflow execution and await supervisor approval before finalizing.
 - **Live SSE Stream:** Watch agents traverse and analyze the codebase in real-time.
 - **Session Export:** Download full analysis reports in JSON format.

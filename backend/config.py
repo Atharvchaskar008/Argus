@@ -75,6 +75,7 @@ AGENT_IDS = [
     "FixAgent",
     "MonitorAgent",
     "ExplanationAgent",
+    "ArchitectureAgent",
 ]
 import sys
 settings = sys.modules[__name__]

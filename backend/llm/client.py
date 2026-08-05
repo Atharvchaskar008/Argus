@@ -85,7 +85,7 @@ def _heuristic(prompt: str) -> str:
 # OpenRouter gateway (single provider for everything)
 # ---------------------------------------------------------------------------
 
-def _openrouter(prompt: str, system: str = "", model: str = "") -> str:
+def _openrouter(prompt: str, system: str = "", model: str = "", max_tokens: int = 8192) -> str:
     """Call any model via OpenRouter's OpenAI-compatible API."""
     try:
         from openai import OpenAI
@@ -107,7 +107,7 @@ def _openrouter(prompt: str, system: str = "", model: str = "") -> str:
         resp = client.chat.completions.create(
             model=resolved,
             messages=messages,
-            max_tokens=2048,
+            max_tokens=max_tokens,
             temperature=0.3,
             extra_headers={
                 "HTTP-Referer": "https://reposense.dev",
@@ -133,7 +133,13 @@ def _openrouter(prompt: str, system: str = "", model: str = "") -> str:
 # Public API
 # ---------------------------------------------------------------------------
 
-def generate(prompt: str, system: str = "", model: str = "") -> tuple[str, str]:
+def generate(
+    prompt: str,
+    system: str = "",
+    model: str = "",
+    max_input_tokens: int = 8192,
+    max_output_tokens: int = 8192,
+) -> tuple[str, str]:
     """Generate text using any model via OpenRouter.
 
     Args:
@@ -141,6 +147,8 @@ def generate(prompt: str, system: str = "", model: str = "") -> tuple[str, str]:
         system: Optional system instruction.
         model: OpenRouter model slug (e.g. 'openai/gpt-4o') or short alias
                (e.g. 'gemini', 'claude'). Defaults to OPENROUTER_DEFAULT_MODEL.
+        max_input_tokens: Maximum tokens allowed in the input prompt (default 8192).
+        max_output_tokens: Maximum tokens allowed in the LLM response (default 8192).
 
     Returns:
         Tuple of (generated_text, provider_string).
@@ -153,8 +161,8 @@ def generate(prompt: str, system: str = "", model: str = "") -> tuple[str, str]:
     # ---------- Guardrails ----------
     # 1️⃣ Sanitize
     safe_prompt = sanitize_prompt(full_prompt)
-    # 2️⃣ Enforce max length (same token limit we use for the API)
-    safe_prompt = enforce_max_length(safe_prompt, max_tokens=2048)
+    # 2️⃣ Enforce max length
+    safe_prompt = enforce_max_length(safe_prompt, max_tokens=max_input_tokens)
     # 3️⃣ Moderate (simple profanity filter; raise if blocked)
     if not moderate_content(safe_prompt):
         raise ValueError("Prompt failed moderation – contains disallowed content")
@@ -162,7 +170,7 @@ def generate(prompt: str, system: str = "", model: str = "") -> tuple[str, str]:
     rate_limit()
 
     resolved = resolve_model(model)
-    result = _openrouter(safe_prompt, system, resolved)
+    result = _openrouter(safe_prompt, system, resolved, max_tokens=max_output_tokens)
     return result, f"openrouter:{resolved}"
 
 
@@ -221,17 +229,38 @@ def list_available_models() -> list[dict]:
         with urllib.request.urlopen(req, timeout=15) as resp:
             data = json.loads(resp.read())
 
+        # Curated popular models for the UI
+        POPULAR = {
+            "google/gemini-2.0-flash-001",
+            "google/gemini-flash-1.5",
+            "anthropic/claude-3.5-sonnet",
+            "anthropic/claude-3-haiku",
+            "openai/gpt-4o",
+            "openai/gpt-4o-mini",
+            "meta-llama/llama-3.1-70b-instruct",
+            "mistralai/mistral-7b-instruct",
+            "deepseek/deepseek-chat",
+            "qwen/qwen-2.5-72b-instruct",
+        }
+
         models = []
         for m in data.get("data", []):
+            mid = m["id"]
+            # Extract provider prefix (e.g. "google" from "google/gemini-...")
+            parts = mid.split("/")
+            provider_raw = parts[0] if len(parts) > 1 else ""
+            provider = provider_raw.replace("-", " ").title()
+
             models.append({
-                "id": m["id"],
-                "name": m.get("name", m["id"]),
+                "id": mid,
+                "name": m.get("name", mid),
+                "provider": provider,
                 "context_length": m.get("context_length", 0),
-                "pricing": m.get("pricing", {}),
+                "popular": mid in POPULAR,
             })
 
-        # Sort by name for readability
-        models.sort(key=lambda x: x["name"].lower())
+        # Sort: popular first, then alphabetically
+        models.sort(key=lambda x: (not x["popular"], x["name"].lower()))
         return models
 
     except Exception as exc:

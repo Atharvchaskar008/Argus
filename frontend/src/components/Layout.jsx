@@ -58,9 +58,6 @@ export default function Layout({ children }) {
         </nav>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '2rem', fontSize: '15px', fontWeight: 500, color: '#404040' }}>
-          <span style={{ cursor: 'pointer', transition: 'color 0.2s' }} onMouseEnter={e => e.target.style.color = '#000000'} onMouseLeave={e => e.target.style.color = '#404040'}>Settings</span>
-          <span style={{ cursor: 'pointer', transition: 'color 0.2s' }} onMouseEnter={e => e.target.style.color = '#000000'} onMouseLeave={e => e.target.style.color = '#404040'}>Account</span>
-          
           {sessionState && sessionState.github && (
             <button 
               onClick={() => setIsActivityOpen(true)}
@@ -71,11 +68,11 @@ export default function Layout({ children }) {
                 cursor: 'pointer', fontSize: '15px', fontWeight: 500,
                 color: '#000000', transition: 'background-color 0.2s'
               }}
-              onMouseEnter={(e) => e.target.style.backgroundColor = '#F5F5F5'}
-              onMouseLeave={(e) => e.target.style.backgroundColor = '#FFFFFF'}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F5F5F5'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#FFFFFF'}
             >
               <Terminal size={16} />
-              View Analysis Activity
+              Activity
             </button>
           )}
         </div>

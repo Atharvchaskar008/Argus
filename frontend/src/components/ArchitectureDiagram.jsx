@@ -1,69 +1,119 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Database, FileCode, Cpu, Shield, BrainCircuit, MessageSquareText } from 'lucide-react';
-
-const flowItems = [
-  { id: 'repo', icon: Database, label: 'Repository', desc: 'Source Code & History' },
-  { id: 'parser', icon: FileCode, label: 'Repository Parser', desc: 'AST & Topology Extraction' },
-  { id: 'engine', icon: Cpu, label: 'Analysis Engine', desc: 'Dependency & Security Scanners' },
-  { id: 'intel', icon: Shield, label: 'Intelligence Layer', desc: 'Context Aggregation' },
-  { id: 'llm', icon: BrainCircuit, label: 'LLM Provider', desc: 'Semantic Understanding' },
-  { id: 'insights', icon: MessageSquareText, label: 'Insights & Answers', desc: 'Actionable Intelligence' },
-];
+import { useRepo } from '../context/RepoContext';
+import Mermaid from './Mermaid';
+import ReactMarkdown from 'react-markdown';
 
 export default function ArchitectureDiagram() {
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: { staggerChildren: 0.2, delayChildren: 0.1 }
-    }
-  };
+  const { sessionState } = useRepo();
+  const [activeTab, setActiveTab] = useState('c4');
+  const [activeSubTab, setActiveSubTab] = useState('level_1_context');
+  
+  if (!sessionState?.architecture_graph) {
+    return null;
+  }
 
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 100 } }
+  const { c4_models, flow_diagrams, markdown_summary } = sessionState.architecture_graph;
+
+  const tabStyle = (isActive) => ({
+    padding: '0.75rem 1.5rem',
+    cursor: 'pointer',
+    borderBottom: isActive ? '2px solid #000000' : '2px solid transparent',
+    color: isActive ? '#000000' : '#888888',
+    fontWeight: isActive ? 600 : 400,
+    fontSize: '16px',
+    transition: 'all 0.2s',
+  });
+
+  const subTabStyle = (isActive) => ({
+    padding: '0.5rem 1rem',
+    cursor: 'pointer',
+    backgroundColor: isActive ? '#000000' : '#F5F5F5',
+    color: isActive ? '#FFFFFF' : '#404040',
+    borderRadius: '4px',
+    fontSize: '14px',
+    fontWeight: 500,
+    transition: 'all 0.2s',
+  });
+
+  const renderContent = () => {
+    if (activeTab === 'c4' && c4_models) {
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', width: '100%' }}>
+          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+            {Object.keys(c4_models).map(key => (
+              <div 
+                key={key} 
+                style={subTabStyle(activeSubTab === key)}
+                onClick={() => setActiveSubTab(key)}
+              >
+                {key.replace(/_/g, ' ').toUpperCase()}
+              </div>
+            ))}
+          </div>
+          <div style={{ border: '1px solid #E5E5E5', padding: '2rem', backgroundColor: '#FAFAFA' }}>
+            {c4_models[activeSubTab] ? <Mermaid chart={c4_models[activeSubTab]} /> : <p>No diagram available.</p>}
+          </div>
+        </div>
+      );
+    }
+    
+    if (activeTab === 'flows' && flow_diagrams) {
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', width: '100%' }}>
+          <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+            {Object.keys(flow_diagrams).map(key => (
+              <div 
+                key={key} 
+                style={subTabStyle(activeSubTab === key)}
+                onClick={() => setActiveSubTab(key)}
+              >
+                {key.replace(/_/g, ' ').toUpperCase()}
+              </div>
+            ))}
+          </div>
+          <div style={{ border: '1px solid #E5E5E5', padding: '2rem', backgroundColor: '#FAFAFA' }}>
+            {flow_diagrams[activeSubTab] ? <Mermaid chart={flow_diagrams[activeSubTab]} /> : <p>No diagram available.</p>}
+          </div>
+        </div>
+      );
+    }
+    
+    if (activeTab === 'summary' && markdown_summary) {
+      return (
+        <div style={{ padding: '2rem', border: '1px solid #E5E5E5', backgroundColor: '#FAFAFA', width: '100%', lineHeight: '1.6' }}>
+          <ReactMarkdown>{markdown_summary}</ReactMarkdown>
+        </div>
+      );
+    }
+    
+    return <p>Data not available for this section.</p>;
   };
 
   return (
-    <div style={{ padding: '3rem 0', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-      <h3 style={{ fontSize: '28px', fontWeight: 600, marginBottom: '3rem', color: '#000000' }}>System Architecture</h3>
+    <div id="architecture" style={{ padding: '3rem 0', display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+      <h3 style={{ fontSize: '28px', fontWeight: 600, marginBottom: '2rem', color: '#000000' }}>System Architecture</h3>
+      
+      <div style={{ display: 'flex', gap: '2rem', marginBottom: '2rem', width: '100%', borderBottom: '1px solid #E5E5E5' }}>
+        <div style={tabStyle(activeTab === 'c4')} onClick={() => { setActiveTab('c4'); setActiveSubTab(Object.keys(c4_models || {})[0]); }}>
+          C4 Models
+        </div>
+        <div style={tabStyle(activeTab === 'flows')} onClick={() => { setActiveTab('flows'); setActiveSubTab(Object.keys(flow_diagrams || {})[0]); }}>
+          Flow Diagrams
+        </div>
+        <div style={tabStyle(activeTab === 'summary')} onClick={() => setActiveTab('summary')}>
+          Architecture Summary
+        </div>
+      </div>
       
       <motion.div 
-        variants={containerVariants}
-        initial="hidden"
-        whileInView="show"
-        viewport={{ once: true, margin: "-100px" }}
-        style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem', width: '100%', maxWidth: '600px' }}
+        key={activeTab}
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        style={{ width: '100%' }}
       >
-        {flowItems.map((item, index) => (
-          <React.Fragment key={item.id}>
-            <motion.div 
-              variants={itemVariants}
-              whileHover={{ scale: 1.015 }}
-              style={{
-                display: 'flex', alignItems: 'center', gap: '1.5rem', width: '100%',
-                padding: '1.5rem 2rem', border: '1px solid #000000', borderRadius: '0',
-                backgroundColor: '#FFFFFF', cursor: 'default'
-              }}
-            >
-              <div style={{ padding: '1rem', backgroundColor: '#F5F5F5', border: '1px solid #000000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <item.icon size={24} color="#000000" />
-              </div>
-              <div>
-                <h4 style={{ fontSize: '20px', fontWeight: 600, marginBottom: '0.25rem' }}>{item.label}</h4>
-                <p style={{ fontSize: '15px', color: '#404040', margin: 0 }}>{item.desc}</p>
-              </div>
-            </motion.div>
-            
-            {index < flowItems.length - 1 && (
-              <motion.div 
-                variants={itemVariants}
-                style={{ height: '2rem', width: '1px', backgroundColor: '#000000' }}
-              />
-            )}
-          </React.Fragment>
-        ))}
+        {renderContent()}
       </motion.div>
     </div>
   );

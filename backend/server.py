@@ -106,6 +106,7 @@ def _public_state(session: dict) -> dict:
         "code_quality": session.get("code_quality"),
         "maintainability": session.get("maintainability"),
         "structure": session.get("structure"),
+        "architecture_graph": session.get("architecture_graph"),
         "recommendations": session.get("recommendations"),
         "readme": session.get("readme"),
         "created_at": session.get("created_at"),
