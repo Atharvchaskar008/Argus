@@ -2,41 +2,146 @@
 
 > **Autonomous AI-Powered Repository Intelligence & System Architecture Platform**
 
-RepoSense is an autonomous, graph-native engineering mission control platform built with a Python (Flask + LangGraph) backend and a modern React frontend. It deploys a swarm of specialized agents to deeply analyze public GitHub repositories, rendering dynamic dependency graph maps, reverse engineering system architectures, identifying security vulnerabilities, and generating automated remediation patches—all monitored in real time via Server-Sent Events (SSE).
+RepoSense is an autonomous, graph-native engineering intelligence platform built with a **Python (Flask + LangGraph)** backend and a modern **React** frontend. It deploys a swarm of specialized AI agents to analyze public GitHub repositories, generate interactive dependency graphs, reverse-engineer software architectures, identify security vulnerabilities, compute impact analysis, and generate remediation patches while streaming progress in real time using Server-Sent Events (SSE).
 
 ---
 
-## 🌟 Key Features
+## Key Features
 
-- **📊 Dynamic Dependency Graph Map:** AST-based code parsing that extracts module imports, functions, classes, and file dependencies into an interactive spatial graph.
-- **🏗 System Architecture Analyzer:** Reverse-engineers complete repository software architecture into Structurizr C4 models (System Context, Container, Component) and request flowcharts using AI, rendered live via Mermaid.js.
-- **🛡 Heuristic & OSV CVE Security Scanning:** 
-  - Detects 9 critical code security anti-patterns (hardcoded credentials, SQL injection risks, insecure subprocesses, command execution, unsafe deserialization).
-  - Queries Google's OSV database for known vulnerabilities (CVEs) across `requirements.txt`, `package.json`, etc.
-- **🎯 Blast Radius Impact Analysis:** Calculates downstream impact of code changes, modified files, and security findings across the entire dependency graph.
-- **🤖 Universal LLM Gateway & Provider Selector:** Integrates OpenRouter for access to 200+ models (Gemini 2.5 Flash, Claude 3.5 Sonnet, GPT-4o, Llama 3.3, DeepSeek, etc.) with a dynamic UI dropdown selector and automatic heuristic fallback.
-- **💬 Repository Deep-Dive Q&A:** Ask natural language questions about the repository structure, code quality, security posture, or architecture, powered by deep contextual prompts (up to 20k characters).
-- **⚡ Real-Time Agent Activity Center (SSE):** Monitor multi-agent progress, state transitions, and step-by-step logs via SSE streaming.
-- **⚖ Dual-Repo Comparison:** Compare two repositories side-by-side (quality scores, security issues, dependency complexity, recommendations) via the `/compare` endpoint.
-- **🛡 Human-in-the-Loop Fix Approvals:** Automated code patch generation with explicit supervisor approval before applying fixes.
+### Dynamic Dependency Graph
+
+* AST-based source code parsing
+* Extracts module imports, classes, functions, and file dependencies
+* Generates an interactive repository dependency graph
+* Visualizes relationships between project components
+
+### System Architecture Analysis
+
+* Reverse-engineers complete software architecture
+* Generates Structurizr C4 models
+
+  * System Context
+  * Container
+  * Component
+* Produces request flow diagrams
+* Renders architecture using Mermaid.js
+
+### Security Scanning
+
+Performs both heuristic analysis and vulnerability database scanning.
+
+**Static Security Detection**
+
+* Hardcoded credentials
+* SQL injection risks
+* Insecure subprocess execution
+* Command injection
+* Unsafe deserialization
+* Additional critical security anti-patterns
+
+**OSV Vulnerability Detection**
+
+* Scans dependency manifests including:
+
+  * `requirements.txt`
+  * `package.json`
+  * `poetry.lock`
+  * `package-lock.json`
+* Queries Google's OSV database for known CVEs
+
+### Blast Radius Impact Analysis
+
+* Calculates downstream dependency impact
+* Identifies affected modules and files
+* Measures dependency propagation
+* Highlights critical graph nodes
+
+### Universal LLM Gateway
+
+* Integrates with OpenRouter
+* Supports more than 200 language models
+* Dynamic provider selection
+* Automatic fallback support
+
+Compatible providers include:
+
+* Gemini
+* Claude
+* GPT
+* Llama
+* DeepSeek
+* Mistral
+* Qwen
+
+### Repository Q&A
+
+Ask natural language questions about:
+
+* Repository architecture
+* Code quality
+* Dependency relationships
+* Security posture
+* Project structure
+
+Supports repository context up to **20,000 characters**.
+
+### Real-Time Agent Activity
+
+Monitor every stage of repository analysis through Server-Sent Events (SSE).
+
+Includes:
+
+* Live workflow progress
+* Agent status
+* Execution logs
+* State transitions
+* Generated artifacts
+
+### Repository Comparison
+
+Compare two repositories side by side using the `/compare` endpoint.
+
+Comparison includes:
+
+* Quality metrics
+* Security findings
+* Dependency complexity
+* Architecture insights
+* Recommendations
+
+### Human-in-the-Loop Fix Approval
+
+* AI-generated remediation patches
+* Supervisor approval before applying changes
+* Safe and controlled code modifications
 
 ---
 
-## 📊 Repository Size & Capacity Limits
+## Repository Size & Capacity
 
-RepoSense is optimized to handle both small scripts and large enterprise codebases efficiently. Here are the exact scale parameters:
+RepoSense is designed to efficiently analyze repositories ranging from small projects to large enterprise codebases.
 
-| Metric / Parameter | Default Capacity | Config Environment Variable | Description |
-| :--- | :--- | :--- | :--- |
-| **Max Repository Files** | **8,000 files** | `MAX_REPO_FILES` | Total non-ignored source files processed per scan. Excludes `.git`, `node_modules`, `venv`, `__pycache__`. |
-| **Git Clone Timeout** | **120 seconds** | `CLONE_TIMEOUT_SEC` | Maximum allowed time for `git clone --depth 1` shallow operations. |
-| **Analyzed File Sampling** | **Up to 100 files** | Internal | AST import parsing & detailed feature extraction. |
-| **Architecture Context Window** | **16,000 tokens (~64 KB)** | `max_input_tokens` | Prompt capacity sent to LLM for full directory tree & config analysis. |
-| **LLM Output Token Limit** | **8,192 tokens** | `max_output_tokens` | Max response size for complex C4 JSON models and architectural flowcharts. |
-| **Q&A Context Window** | **20,000 characters** | Internal | Aggregated context size passed for interactive repository Q&A. |
-| **Session Expiry / Cache** | **24 hours** | `SESSION_MAX_AGE_HOURS` | Live session snapshot cache retention period. |
+| Parameter                   | Default               | Environment Variable    | Description                                                                                            |
+| --------------------------- | --------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------ |
+| Maximum Repository Files    | **8,000**             | `MAX_REPO_FILES`        | Maximum number of source files analyzed (excluding `.git`, `node_modules`, `venv`, and `__pycache__`). |
+| Git Clone Timeout           | **120 seconds**       | `CLONE_TIMEOUT_SEC`     | Maximum duration allowed for shallow repository cloning.                                               |
+| Detailed File Analysis      | **100 files**         | Internal                | Maximum files processed for detailed AST parsing and feature extraction.                               |
+| Architecture Context Window | **16,000 tokens**     | `max_input_tokens`      | Maximum context sent to the LLM for architecture generation.                                           |
+| LLM Output Limit            | **8,192 tokens**      | `max_output_tokens`     | Maximum generated output size for architecture and analysis.                                           |
+| Repository Q&A Context      | **20,000 characters** | Internal                | Maximum repository context provided during interactive Q&A.                                            |
+| Session Cache Duration      | **24 hours**          | `SESSION_MAX_AGE_HOURS` | Duration for retaining repository analysis sessions.                                                   |
 
-> 💡 **Tackling Larger Repositories:** For codebases exceeding 8,000 files, set `MAX_REPO_FILES=25000` and increase `CLONE_TIMEOUT_SEC=300` in your `.env` file.
+> **Scaling for Large Repositories**
+>
+> For repositories larger than **8,000 files**, update your `.env` configuration:
+>
+> ```env
+> MAX_REPO_FILES=25000
+> CLONE_TIMEOUT_SEC=300
+> ```
+>
+> Increasing these values allows RepoSense to process significantly larger codebases while providing sufficient time for repository cloning and analysis.
+
 
 ---
 
