@@ -9,7 +9,7 @@ export default function RepositoryOverview() {
   const { summary, code_quality, findings, recommendations } = sessionState;
 
   return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} style={{ display: 'flex', flexDirection: 'column', gap: '4rem' }}>
+    <motion.div id="security" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} style={{ display: 'flex', flexDirection: 'column', gap: '4rem' }}>
       
       {/* Overview Hero */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', textAlign: 'center', alignItems: 'center' }}>

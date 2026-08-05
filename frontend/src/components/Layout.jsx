@@ -7,6 +7,18 @@ export default function Layout({ children }) {
   const { session, sessionState, isAnalyzing, resetSession } = useRepo();
   const [isActivityOpen, setIsActivityOpen] = useState(false);
 
+  const scrollTo = (id) => {
+    if (id === 'top') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      const el = document.getElementById(id);
+      if (el) {
+        const y = el.getBoundingClientRect().top + window.scrollY - 100; // offset for sticky header
+        window.scrollTo({ top: y, behavior: 'smooth' });
+      }
+    }
+  };
+
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#FFFFFF', color: '#000000' }}>
       <header style={{ 
@@ -39,10 +51,10 @@ export default function Layout({ children }) {
         </div>
         
         <nav style={{ display: 'flex', alignItems: 'center', gap: '2.5rem', fontSize: '15px', fontWeight: 500, color: '#404040' }}>
-          <span style={{ cursor: 'pointer', color: '#000000' }}>Repositories</span>
-          <span style={{ cursor: 'pointer', transition: 'color 0.2s' }} onMouseEnter={e => e.target.style.color = '#000000'} onMouseLeave={e => e.target.style.color = '#404040'}>Security</span>
-          <span style={{ cursor: 'pointer', transition: 'color 0.2s' }} onMouseEnter={e => e.target.style.color = '#000000'} onMouseLeave={e => e.target.style.color = '#404040'}>Intelligence</span>
-          <span style={{ cursor: 'pointer', transition: 'color 0.2s' }} onMouseEnter={e => e.target.style.color = '#000000'} onMouseLeave={e => e.target.style.color = '#404040'}>Architecture</span>
+          <span onClick={() => scrollTo('top')} style={{ cursor: 'pointer', color: '#000000' }}>Repositories</span>
+          <span onClick={() => scrollTo('security')} style={{ cursor: 'pointer', transition: 'color 0.2s' }} onMouseEnter={e => e.target.style.color = '#000000'} onMouseLeave={e => e.target.style.color = '#404040'}>Security</span>
+          <span onClick={() => scrollTo('intelligence')} style={{ cursor: 'pointer', transition: 'color 0.2s' }} onMouseEnter={e => e.target.style.color = '#000000'} onMouseLeave={e => e.target.style.color = '#404040'}>Intelligence</span>
+          <span onClick={() => scrollTo('architecture')} style={{ cursor: 'pointer', transition: 'color 0.2s' }} onMouseEnter={e => e.target.style.color = '#000000'} onMouseLeave={e => e.target.style.color = '#404040'}>Architecture</span>
         </nav>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '2rem', fontSize: '15px', fontWeight: 500, color: '#404040' }}>

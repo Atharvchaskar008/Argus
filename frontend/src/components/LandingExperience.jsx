@@ -24,7 +24,6 @@ export default function LandingExperience() {
         <h1 style={{ fontSize: '56px', fontWeight: 600, marginBottom: '1.5rem', letterSpacing: '-0.03em', color: '#000000', lineHeight: 1.1 }}>
           Understand Any Repository
         </h1>
-        <Arrow />
         <p style={{ color: '#404040', marginBottom: '4rem', fontSize: '18px', fontWeight: 400, lineHeight: 1.5 }}>
           Security intelligence, architecture understanding, and AI-powered repository conversations.
         </p>
