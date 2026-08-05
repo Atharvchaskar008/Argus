@@ -197,13 +197,23 @@ def complete(
 
 def chat(session_context: str, question: str, model: str | None = None) -> tuple[str, str]:
     """Chat about a repository analysis session."""
-    prompt = (
-        f"You are RepoSense, an expert repository intelligence assistant.\n"
-        f"Use ONLY the analysis context below. Be concise and specific.\n\n"
-        f"CONTEXT:\n{session_context[:12000]}\n\n"
-        f"QUESTION: {question}"
+    system_instruction = (
+        "You are RepoSense, an expert AI software architect and repository intelligence assistant. "
+        "Provide thorough, accurate, and structured markdown answers based on the repository analysis context provided. "
+        "Use bullet points, code snippets, and clear headings where appropriate."
     )
-    return generate(prompt, system="Answer in 2-5 sentences.", model=model or "")
+    prompt = (
+        f"REPOSITORY ANALYSIS CONTEXT:\n{session_context[:20000]}\n\n"
+        f"USER QUESTION: {question}"
+    )
+    return generate(
+        prompt,
+        system=system_instruction,
+        model=model or "",
+        max_input_tokens=16000,
+        max_output_tokens=4096,
+    )
+
 
 
 # ---------------------------------------------------------------------------

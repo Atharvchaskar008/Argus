@@ -7,41 +7,40 @@ from backend.llm.client import generate as llm_generate
 log = logging.getLogger("reposense.architecture")
 
 ARCHITECTURE_PROMPT = """You are an expert software architect.
-Analyze the provided GitHub repository details and reverse engineer the software architecture.
-Your task is to generate a professional Structurizr C4 Model (using Mermaid C4 notation) that accurately represents the current implementation instead of making assumptions.
+Analyze the provided GitHub repository and generate Mermaid flowchart diagrams that accurately
+represent the actual source code architecture. Use ONLY what you can see in the file tree and configs.
 
-Requirements:
-1. Detect the application's entry points.
-2. Identify all services, controllers, routes, middleware, repositories, models, utilities, workers, schedulers, and background jobs.
-3. Detect databases, caches, queues, object storage, external APIs, authentication providers, and third-party integrations.
-4. Determine the communication between every component.
-5. Follow the actual source code instead of inferred architecture.
+CRITICAL MERMAID RULES (follow exactly):
+1. Use ONLY standard Mermaid flowchart syntax: flowchart TD
+2. Node IDs must be alphanumeric + underscores only (e.g. Flask_App, NOT Flask App)
+3. Labels with spaces go in quotes: Flask_App["Flask App"]
+4. Arrows: --> for simple, -->|label| for labeled
+5. DO NOT use C4Context, C4Container or any C4 notation - use flowchart TD only
+6. DO NOT use parentheses () in node IDs
+7. Each diagram must start with: flowchart TD
+8. Keep diagrams concise - max 15 nodes per diagram
+9. Use \\n for newlines inside JSON string values
 
-For every diagram:
-- Use Mermaid C4 notation (C4Context, C4Container, C4Component for C4 models, and standard Mermaid flowcharts/sequence diagrams for flow diagrams).
-- Keep layouts clean and readable.
-- Label every relationship and include technology names.
-- Do NOT wrap mermaid code in markdown code blocks inside the JSON string values. Just the raw mermaid code.
-
-You MUST return your analysis STRICTLY as a valid JSON object with the following schema (no markdown, no explanation outside the JSON):
+You MUST return ONLY a valid JSON object (no markdown fences, no explanation):
 {
   "c4_models": {
-    "level_1_context": "<mermaid code>",
-    "level_2_container": "<mermaid code>",
-    "level_3_component": "<mermaid code>"
+    "level_1_context": "flowchart TD\\n  User[\"User\"] -->|Uses| System[\"Application\"]",
+    "level_2_container": "flowchart TD\\n  Frontend[\"Frontend\"] -->|HTTP/REST| Backend[\"Backend API\"]",
+    "level_3_component": "flowchart TD\\n  Router[\"API Router\"] --> Handler[\"Request Handler\"]"
   },
   "flow_diagrams": {
-    "request_lifecycle": "<mermaid code>",
-    "authentication_flow": "<mermaid code>",
-    "database_interaction": "<mermaid code>",
-    "external_api_interaction": "<mermaid code>",
-    "data_flow_diagram": "<mermaid code>",
-    "deployment_diagram": "<mermaid code>"
+    "request_lifecycle": "flowchart TD\\n  Client[\"Client\"] --> Server[\"Server\"]",
+    "data_flow_diagram": "flowchart TD\\n  Input[\"Input\"] --> Process[\"Process\"] --> Output[\"Output\"]",
+    "deployment_diagram": "flowchart TD\\n  Dev[\"Developer\"] --> Repo[\"Git Repo\"] --> Deploy[\"Deployment\"]"
   },
-  "markdown_summary": "<Architecture summary in markdown>"
+  "markdown_summary": "## Architecture Summary\\n\\nBrief description here."
 }
 
-IMPORTANT: Return ONLY the JSON object. No markdown code fences. No explanation before or after. Just valid JSON.
+IMPORTANT:
+- Return ONLY the JSON object. Nothing before or after it.
+- All mermaid code goes inside JSON string values - escape newlines as \\n
+- If a flow type does not apply (e.g. no auth), use a simple placeholder diagram
+- Follow the ACTUAL code structure, not generic assumptions
 
 Repository Context:
 {context}
@@ -49,58 +48,103 @@ Repository Context:
 
 
 def generate_architecture_analysis(repo_path: str, files: list) -> dict:
-    """Analyze the repository architecture using LLM and Mermaid C4."""
+    """Analyze the repository architecture using LLM and Mermaid flowcharts."""
     try:
         root = Path(repo_path)
 
-        # Build directory tree
+        # Build directory tree (exclude common noise)
         tree = []
         for p in root.rglob("*"):
-            if any(skip in p.parts for skip in (".git", "node_modules", "__pycache__", "venv", ".venv", "dist")):
+            if any(skip in p.parts for skip in (
+                ".git", "node_modules", "__pycache__", "venv", ".venv",
+                "dist", "build", ".next", "coverage", ".pytest_cache"
+            )):
                 continue
             tree.append(str(p.relative_to(root)).replace("\\", "/"))
+        tree.sort()
 
-        # Read config files
+        # Read config files for stack detection
         configs = {}
-        for name in ("package.json", "requirements.txt", "docker-compose.yml", "go.mod",
-                      "pyproject.toml", "Cargo.toml", "pom.xml", "build.gradle", "Dockerfile"):
+        for name in (
+            "package.json", "requirements.txt", "docker-compose.yml", "go.mod",
+            "pyproject.toml", "Cargo.toml", "pom.xml", "build.gradle",
+            "Dockerfile", ".env.example", "vercel.json", "netlify.toml",
+        ):
             p = root / name
             if p.exists():
                 content = p.read_text(encoding="utf-8", errors="ignore")
-                configs[name] = content[:2000]  # Limit per config
+                configs[name] = content[:1500]
 
-        # Build file summaries
+        # Build file summaries with imports
         file_summaries = []
-        for f in files[:100]:
-            imports = ", ".join(f.get("imports", [])[:10])
-            file_summaries.append(f"{f['path']} - Imports: {imports}")
+        for f in files[:80]:
+            imports = ", ".join(f.get("imports", [])[:8])
+            path = f.get("path", "")
+            if imports:
+                file_summaries.append(f"{path} → imports: {imports}")
+            else:
+                file_summaries.append(path)
 
         context_str = (
-            f"Directory Tree:\n{chr(10).join(tree[:200])}\n\n"
+            f"Directory Tree (first 150 entries):\n{chr(10).join(tree[:150])}\n\n"
             f"Key Configurations:\n{json.dumps(configs, indent=2)}\n\n"
-            f"Key Files and Imports:\n{chr(10).join(file_summaries)}"
+            f"Key Files and Dependencies:\n{chr(10).join(file_summaries)}"
         )
 
         prompt = ARCHITECTURE_PROMPT.replace("{context}", context_str)
+        log.info("Architecture prompt length: %d chars", len(prompt))
 
-        # Call LLM - generate() returns (text, provider)
+        # Call LLM
         response_text, provider = llm_generate(
             prompt,
-            max_input_tokens=16000,   # Allow large repo tree in prompt
-            max_output_tokens=8192,   # Need detailed JSON response
+            max_input_tokens=16000,
+            max_output_tokens=8192,
         )
-        log.info("Architecture LLM response received from %s (%d chars)", provider, len(response_text))
+        log.info("Architecture LLM response from %s (%d chars)", provider, len(response_text))
 
         if not response_text or provider == "heuristic":
-            log.warning("Architecture analysis got heuristic fallback - returning empty")
+            log.warning("Architecture analysis got heuristic fallback")
             return _fallback_architecture(files)
 
-        # Parse JSON from response
-        return _parse_architecture_json(response_text)
+        result = _parse_architecture_json(response_text)
+        if not result:
+            log.warning("Could not parse architecture JSON — using fallback")
+            return _fallback_architecture(files)
+
+        # Sanitize all mermaid strings in the result
+        result = _sanitize_mermaid_in_dict(result)
+        return result
 
     except Exception as e:
         log.error("Failed to generate architecture analysis: %s", e, exc_info=True)
         return _fallback_architecture(files)
+
+
+def _sanitize_mermaid_in_dict(data: dict) -> dict:
+    """Recursively sanitize mermaid diagram strings in the architecture dict."""
+    if isinstance(data, dict):
+        return {k: _sanitize_mermaid_in_dict(v) for k, v in data.items()}
+    elif isinstance(data, str) and ("flowchart" in data or "graph" in data or "sequenceDiagram" in data):
+        return _sanitize_mermaid(data)
+    return data
+
+
+def _sanitize_mermaid(code: str) -> str:
+    """Clean up common LLM mermaid generation mistakes."""
+    # Strip markdown code fences if LLM added them
+    code = re.sub(r'^```[a-z]*\s*\n?', '', code, flags=re.IGNORECASE)
+    code = re.sub(r'\n?```\s*$', '', code, flags=re.IGNORECASE)
+
+    # Replace literal \n with real newlines if they exist
+    if '\\n' in code and '\n' not in code:
+        code = code.replace('\\n', '\n')
+
+    # Remove problematic characters from node IDs (keep alphanumeric, underscore, brackets, quotes, arrows, spaces, pipe)
+    # Fix common: nodes with special chars in IDs without quoting
+    # e.g. Flask(App) -> Flask_App["Flask App"]
+    code = re.sub(r'\(([^)]+)\)', lambda m: '[' + m.group(1) + ']', code)
+
+    return code.strip()
 
 
 def _parse_architecture_json(response_text: str) -> dict:
@@ -119,35 +163,78 @@ def _parse_architecture_json(response_text: str) -> dict:
         except json.JSONDecodeError:
             pass
 
-    # Strategy 3: Find first { to last }
+    # Strategy 3: Find outermost { ... }
     first_brace = response_text.find("{")
     last_brace = response_text.rfind("}")
     if first_brace != -1 and last_brace > first_brace:
+        candidate = response_text[first_brace:last_brace + 1]
         try:
-            return json.loads(response_text[first_brace:last_brace + 1])
+            return json.loads(candidate)
         except json.JSONDecodeError:
-            pass
+            # Strategy 4: Try to fix common JSON issues (trailing commas, etc.)
+            fixed = re.sub(r',\s*([}\]])', r'\1', candidate)  # remove trailing commas
+            try:
+                return json.loads(fixed)
+            except json.JSONDecodeError:
+                pass
 
-    log.warning("Could not parse architecture JSON from LLM response")
     return {}
 
 
 def _fallback_architecture(files: list) -> dict:
-    """Generate a basic static architecture when LLM is unavailable."""
-    file_list = [f.get("path", "unknown") for f in files[:20]]
-    nodes = "\\n".join(f"  {f}" for f in file_list)
+    """Generate a valid static architecture when LLM is unavailable."""
+    file_list = [f.get("path", "unknown") for f in files[:15]]
+
+    # Build a simple but valid flowchart from actual files
+    file_nodes = "\n".join(
+        f"  F{i}[\"{p.split('/')[-1]}\"]" for i, p in enumerate(file_list[:10])
+    )
 
     return {
         "c4_models": {
-            "level_1_context": f"graph TD\\n  User[User] -->|Uses| App[Application]\\n  App -->|Reads| Repo[Repository Files]",
-            "level_2_container": f"graph TD\\n  Frontend[Frontend] -->|HTTP| Backend[Backend API]\\n  Backend -->|Reads| FS[File System]",
-            "level_3_component": f"graph TD\\n  API[API Routes] --> Analyzers[Analyzers]\\n  Analyzers --> LLM[LLM Client]",
+            "level_1_context": (
+                "flowchart TD\n"
+                "  User[\"Developer\"]\n"
+                "  App[\"Application\"]\n"
+                "  GitHub[\"GitHub\"]\n"
+                "  User -->|Pushes code| GitHub\n"
+                "  User -->|Runs| App\n"
+                "  App -->|Clones from| GitHub"
+            ),
+            "level_2_container": (
+                "flowchart TD\n"
+                "  Frontend[\"Frontend UI\"]\n"
+                "  Backend[\"Backend API\"]\n"
+                "  LLM[\"LLM Provider\"]\n"
+                "  FS[\"File System\"]\n"
+                "  Frontend -->|HTTP REST| Backend\n"
+                "  Backend -->|Analyzes| FS\n"
+                "  Backend -->|AI Requests| LLM"
+            ),
+            "level_3_component": (
+                "flowchart TD\n"
+                f"{file_nodes}\n"
+                "  Main[\"Entry Point\"] --> Core[\"Core Logic\"]"
+            ) if file_nodes else (
+                "flowchart TD\n"
+                "  Entry[\"Entry Point\"] --> Core[\"Core Logic\"]\n"
+                "  Core --> Utils[\"Utilities\"]"
+            ),
         },
-        "flow_diagrams": {},
+        "flow_diagrams": {
+            "data_flow_diagram": (
+                "flowchart TD\n"
+                "  Input[\"Repository URL\"]\n"
+                "  Clone[\"Clone Repo\"]\n"
+                "  Analyze[\"Analyze Files\"]\n"
+                "  Report[\"Generate Report\"]\n"
+                "  Input --> Clone --> Analyze --> Report"
+            ),
+        },
         "markdown_summary": (
-            "## Architecture Summary (Heuristic Fallback)\n\n"
-            "LLM analysis was unavailable. This is a basic structural overview.\n\n"
-            f"### Files Analyzed\n{chr(10).join('- ' + f for f in file_list)}\n\n"
-            "**Tip:** Set `OPENROUTER_API_KEY` for detailed AI-powered architecture analysis."
+            "## Architecture Summary\n\n"
+            "> **Note:** This is a heuristic fallback. Set `OPENROUTER_API_KEY` for AI-powered analysis.\n\n"
+            "### Files Detected\n"
+            + "\n".join(f"- `{f}`" for f in file_list)
         ),
     }

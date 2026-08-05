@@ -96,17 +96,26 @@ def answer_query(session_id: str, query: str, model: str | None = None) -> str:
     session = snapshot.get_session(session_id)
     if not session:
         return "No active analysis session."
+    
     ctx = json.dumps(
         {
-            "repo": session.get("github", {}).get("full_name"),
+            "repo": session.get("github", {}).get("full_name") or session.get("repo_url"),
             "summary": session.get("summary", {}),
-            "findings": session.get("findings", [])[:5],
+            "structure": session.get("structure", {}),
+            "architecture": session.get("architecture_graph", {}).get("markdown_summary"),
+            "c4_overview": session.get("architecture_graph", {}).get("c4_models"),
+            "code_quality": session.get("code_quality", {}),
+            "maintainability": session.get("maintainability", {}),
+            "findings": session.get("findings", []),
+            "cve_findings": session.get("cve_findings", []),
             "impact": session.get("impact", {}),
             "recommendations": session.get("recommendations", []),
-        }
+        },
+        indent=2,
     )
     text, _ = llm_chat(ctx, query, model=model)
     return text
+
 
 
 def resolve_approval(session_id: str, approval_id: str, approved: bool) -> dict:
