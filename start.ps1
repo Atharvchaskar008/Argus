@@ -16,4 +16,4 @@ Write-Host "Installing dependencies..."
 pip install -q -r requirements.txt
 
 Write-Host "Starting RepoSense at http://localhost:8000"
-python server.py
+python -m backend.server

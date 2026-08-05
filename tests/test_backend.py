@@ -1,6 +1,6 @@
 import pytest
 import json
-from server import app
+from backend.server import app
 
 @pytest.fixture
 def client():
@@ -23,9 +23,9 @@ def test_analyze_invalid_url(client):
 
 def test_analyze_valid_url(client):
     # reset rate limiter before testing valid url so we don't get 429
-    import utils.rate_limiter as rl
-    if hasattr(rl, '_hits'):
-        rl._hits.clear()
+    import backend.core.rate_limiter as rl
+    if hasattr(rl, '_buckets'):
+        rl._buckets.clear()
         
     res = client.post("/analyze", json={"repo_url": "https://github.com/pallets/flask"})
     assert res.status_code == 202
@@ -43,9 +43,9 @@ def test_sessions_list(client):
     assert isinstance(res.json, list)
 
 def test_rate_limit(client):
-    import utils.rate_limiter as rl
-    if hasattr(rl, '_hits'):
-        rl._hits.clear()
+    import backend.core.rate_limiter as rl
+    if hasattr(rl, '_buckets'):
+        rl._buckets.clear()
 
     # The request limit is 10 max
     for _ in range(10):
