@@ -23,11 +23,46 @@ export default function RepositoryOverview() {
           </div>
           <div style={{ width: '1px', height: '60px', backgroundColor: '#E5E5E5' }} />
           <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '15px', color: '#404040', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem', fontWeight: 600 }}>Blast Radius</div>
+            <div style={{ fontSize: '40px', fontWeight: 600, color: '#000000', lineHeight: 1 }}>{sessionState?.impact?.blast_radius || 0}<span style={{ fontSize: '16px', color: '#A3A3A3' }}> modules</span></div>
+          </div>
+          <div style={{ width: '1px', height: '60px', backgroundColor: '#E5E5E5' }} />
+          <div style={{ textAlign: 'center' }}>
             <div style={{ fontSize: '15px', color: '#404040', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem', fontWeight: 600 }}>Risk Level</div>
             <div style={{ fontSize: '28px', fontWeight: 600, color: '#000000', lineHeight: 1.4 }}>{summary.risk_level}</div>
           </div>
         </div>
       </div>
+
+      {/* Blast Radius Impact Analysis */}
+      {sessionState?.impact && (
+        <div>
+          <h3 style={{ fontSize: '28px', fontWeight: 600, marginBottom: '2rem', color: '#000000', borderBottom: '2px solid #000000', paddingBottom: '1rem' }}>
+            Blast Radius Impact Analysis
+          </h3>
+          <div style={{ padding: '2rem', border: '1px solid #000000', backgroundColor: '#FFFFFF', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            <div style={{ fontSize: '18px', color: '#404040', lineHeight: 1.6 }}>
+              <strong>Target Module Evaluated:</strong> <span className="font-mono" style={{ backgroundColor: '#F5F5F5', padding: '0.2rem 0.6rem', border: '1px solid #E5E5E5' }}>{sessionState.impact.target || 'Core Architecture'}</span>
+            </div>
+            <div style={{ fontSize: '18px', color: '#404040', lineHeight: 1.6 }}>
+              <strong>Blast Radius:</strong> Changes to this target module directly or indirectly impact <strong>{sessionState.impact.blast_radius || 0} downstream modules</strong> across the graph.
+            </div>
+            {sessionState.impact.human_readable && sessionState.impact.human_readable.length > 0 && (
+              <div>
+                <div style={{ fontSize: '16px', fontWeight: 600, color: '#000000', marginBottom: '1rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Affected Downstream Components:</div>
+                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                  {sessionState.impact.human_readable.map((mod, idx) => (
+                    <span key={idx} style={{ padding: '0.5rem 1rem', border: '1px solid #000000', backgroundColor: '#F5F5F5', fontSize: '15px', fontWeight: 500, color: '#000000' }}>
+                      ⚡ {mod}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
 
       {/* Critical Findings - Report Style */}
       <div>
