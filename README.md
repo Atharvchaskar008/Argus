@@ -1,8 +1,8 @@
-# RepoSense
+Argus
 
 > **Autonomous AI-Powered Repository Intelligence & System Architecture Platform**
 
-RepoSense is an autonomous, graph-native engineering intelligence platform built with a **Python (Flask + LangGraph)** backend and a modern **React** frontend. It deploys a swarm of specialized AI agents to analyze public GitHub repositories, generate interactive dependency graphs, reverse-engineer software architectures, identify security vulnerabilities, compute impact analysis, and generate remediation patches while streaming progress in real time using Server-Sent Events (SSE).
+Argus is an autonomous, graph-native engineering intelligence platform built with a **Python (Flask + LangGraph)** backend and a modern **React** frontend. It deploys a swarm of specialized AI agents to analyze public GitHub repositories, generate interactive dependency graphs, reverse-engineer software architectures, identify security vulnerabilities, compute impact analysis, and generate remediation patches while streaming progress in real time using Server-Sent Events (SSE).
 
 ---
 
