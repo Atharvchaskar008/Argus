@@ -13,11 +13,19 @@ import time
 import uuid
 from pathlib import Path
 
-from flask import Flask, Response, jsonify, request, send_from_directory
+from flask import Flask, Response, jsonify, redirect, request, send_from_directory, session
 from flask_cors import CORS
+import requests
 from werkzeug.exceptions import HTTPException
 
-from backend.config import GITHUB_TOKEN, PORT
+from backend.config import (
+    FRONTEND_URL,
+    GITHUB_CLIENT_ID,
+    GITHUB_CLIENT_SECRET,
+    GITHUB_TOKEN,
+    PORT,
+    SECRET_KEY,
+)
 from backend.orchestrator import answer_query, resolve_approval, run_analysis
 from backend.core import snapshot
 from backend.github.repo_validate import validate_github_url
@@ -34,7 +42,18 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 FRONTEND = BASE_DIR / "frontend" / "dist"
 
 app = Flask(__name__, static_folder=None)
-CORS(app, resources={r"/*": {"origins": "*"}})
+app.secret_key = SECRET_KEY
+CORS(
+    app,
+    supports_credentials=True,
+    origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+        FRONTEND_URL.rstrip("/"),
+    ],
+)
 
 
 @app.errorhandler(Exception)
@@ -151,6 +170,187 @@ def health_providers():
     return jsonify(registry.check_health())
 
 
+def _get_current_token() -> str:
+    auth_header = request.headers.get("Authorization", "")
+    if auth_header.startswith("Bearer "):
+        token = auth_header[7:].strip()
+        if token:
+            return token
+    return session.get("github_token", "")
+
+
+def _fetch_github_user(token: str) -> dict | None:
+    if not token:
+        return None
+    try:
+        r = requests.get(
+            "https://api.github.com/user",
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Accept": "application/vnd.github+json",
+                "User-Agent": "Argus/1.0",
+            },
+            timeout=10,
+        )
+        if r.status_code == 200:
+            return r.json()
+    except Exception as exc:
+        log.warning("Failed to fetch user from GitHub API: %s", exc)
+    return None
+
+
+@app.route("/auth/github/login")
+def github_login():
+    if not GITHUB_CLIENT_ID:
+        return jsonify({
+            "error": "GITHUB_CLIENT_ID is not configured in .env. Please set up a GitHub OAuth App."
+        }), 500
+
+    redirect_uri = f"{request.host_url.rstrip('/')}/auth/github/callback"
+    state = str(uuid.uuid4())
+    session["oauth_state"] = state
+
+    scope = "repo,read:user"
+    github_auth_url = (
+        f"https://github.com/login/oauth/authorize"
+        f"?client_id={GITHUB_CLIENT_ID}"
+        f"&redirect_uri={redirect_uri}"
+        f"&scope={scope}"
+        f"&state={state}"
+    )
+    return redirect(github_auth_url)
+
+
+@app.route("/auth/github/callback")
+def github_callback():
+    code = request.args.get("code")
+    err = request.args.get("error")
+
+    if err:
+        return redirect(f"{FRONTEND_URL}/?auth_error={err}")
+    if not code:
+        return redirect(f"{FRONTEND_URL}/?auth_error=missing_code")
+
+    if not GITHUB_CLIENT_ID or not GITHUB_CLIENT_SECRET:
+        return redirect(f"{FRONTEND_URL}/?auth_error=oauth_not_configured")
+
+    try:
+        token_resp = requests.post(
+            "https://github.com/login/oauth/access_token",
+            headers={"Accept": "application/json"},
+            data={
+                "client_id": GITHUB_CLIENT_ID,
+                "client_secret": GITHUB_CLIENT_SECRET,
+                "code": code,
+            },
+            timeout=15,
+        )
+        token_data = token_resp.json()
+        access_token = token_data.get("access_token")
+
+        if not access_token:
+            error_desc = token_data.get("error_description", "token_exchange_failed")
+            return redirect(f"{FRONTEND_URL}/?auth_error={error_desc}")
+
+        user_info = _fetch_github_user(access_token)
+        if user_info:
+            session["github_token"] = access_token
+            session["github_user"] = {
+                "login": user_info.get("login"),
+                "name": user_info.get("name") or user_info.get("login"),
+                "avatar_url": user_info.get("avatar_url"),
+                "html_url": user_info.get("html_url"),
+                "public_repos": user_info.get("public_repos", 0),
+                "total_private_repos": user_info.get("total_private_repos", 0),
+            }
+
+        return redirect(f"{FRONTEND_URL}/?auth=success&token={access_token}")
+    except Exception as exc:
+        log.exception("OAuth exchange error")
+        return redirect(f"{FRONTEND_URL}/?auth_error=exchange_failed")
+
+
+@app.route("/auth/user")
+def auth_user():
+    token = _get_current_token()
+    if not token:
+        return jsonify({"authenticated": False, "user": None})
+
+    user = session.get("github_user")
+    if not user:
+        user_data = _fetch_github_user(token)
+        if user_data:
+            user = {
+                "login": user_data.get("login"),
+                "name": user_data.get("name") or user_data.get("login"),
+                "avatar_url": user_data.get("avatar_url"),
+                "html_url": user_data.get("html_url"),
+                "public_repos": user_data.get("public_repos", 0),
+                "total_private_repos": user_data.get("total_private_repos", 0),
+            }
+            session["github_user"] = user
+
+    if user:
+        return jsonify({"authenticated": True, "user": user, "token": token})
+    return jsonify({"authenticated": False, "user": None})
+
+
+@app.route("/auth/repos")
+def auth_repos():
+    token = _get_current_token()
+    if not token:
+        return jsonify({"error": "Unauthorized. Please sign in with GitHub."}), 401
+
+    try:
+        page = request.args.get("page", 1, type=int)
+        per_page = min(request.args.get("per_page", 100, type=int), 100)
+        visibility = request.args.get("visibility", "all")
+
+        url = f"https://api.github.com/user/repos?sort=updated&per_page={per_page}&page={page}&visibility={visibility}&affiliation=owner,collaborator"
+        r = requests.get(
+            url,
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Accept": "application/vnd.github+json",
+                "User-Agent": "Argus/1.0",
+            },
+            timeout=15,
+        )
+        if r.status_code != 200:
+            return jsonify({"error": f"GitHub API error: {r.status_code}"}), r.status_code
+
+        raw_repos = r.json()
+        repos = [
+            {
+                "id": repo.get("id"),
+                "name": repo.get("name"),
+                "full_name": repo.get("full_name"),
+                "private": repo.get("private", False),
+                "html_url": repo.get("html_url"),
+                "description": repo.get("description") or "",
+                "language": repo.get("language") or "Other",
+                "stars": repo.get("stargazers_count", 0),
+                "forks": repo.get("forks_count", 0),
+                "updated_at": repo.get("updated_at", ""),
+                "default_branch": repo.get("default_branch", "main"),
+            }
+            for repo in raw_repos
+            if isinstance(repo, dict)
+        ]
+        return jsonify({"repos": repos, "count": len(repos)})
+    except Exception as exc:
+        log.exception("Failed to fetch user repositories")
+        return jsonify({"error": str(exc)}), 500
+
+
+@app.route("/auth/logout", methods=["POST"])
+def auth_logout():
+    session.pop("github_token", None)
+    session.pop("github_user", None)
+    session.pop("oauth_state", None)
+    return jsonify({"authenticated": False, "message": "Logged out successfully"})
+
+
 @app.route("/analyze", methods=["POST"])
 def analyze():
     allowed, msg = allow_request(request.remote_addr, max_requests=10, window_seconds=60)
@@ -160,6 +360,7 @@ def analyze():
     body = request.get_json(force=True, silent=True) or {}
     repo_url = (body.get("repo_url") or "").strip()
     mode = body.get("execution_mode", "autonomous")
+    auth_token = body.get("token") or _get_current_token()
 
     ok, err, normalized = validate_github_url(repo_url)
     if not ok:
@@ -171,7 +372,7 @@ def analyze():
 
     threading.Thread(
         target=run_analysis,
-        args=(session_id, normalized, mode),
+        args=(session_id, normalized, mode, auth_token),
         daemon=True,
     ).start()
 

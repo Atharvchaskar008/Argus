@@ -1,4 +1,5 @@
 import React from 'react';
+import { AuthProvider } from './context/AuthContext';
 import { RepoProvider, useRepo } from './context/RepoContext';
 import Layout from './components/Layout';
 import LandingExperience from './components/LandingExperience';
@@ -16,9 +17,11 @@ function AppContent() {
 
 function App() {
   return (
-    <RepoProvider>
-      <AppContent />
-    </RepoProvider>
+    <AuthProvider>
+      <RepoProvider>
+        <AppContent />
+      </RepoProvider>
+    </AuthProvider>
   );
 }
 

@@ -58,6 +58,7 @@ class AgentState(TypedDict):
     graph_edges: List[Dict[str, Any]]
     github: Dict[str, Any]
     contributors: List[Dict[str, Any]]
+    auth_token: str
     error: str
 
 
@@ -155,12 +156,14 @@ def dependency_agent_node(state: AgentState) -> AgentState:
     _agent(state, "DependencyAgent", "RUNNING", "Fetching GitHub metadata")
     _log(state, "Fetching repository metadata from GitHub API", agent="DependencyAgent")
 
+    token = state.get("auth_token")
+
     # Fetch GitHub Metadata
-    github = fetch_full_github_intel(repo_url)
+    github = fetch_full_github_intel(repo_url, token=token)
     state["github"] = github
     state["contributors"] = github.get("contributors", [])
     
-    contributors = fetch_contributors(repo_url)
+    contributors = fetch_contributors(repo_url, token=token)
     state["contributors"] = contributors
     if contributors:
         _log(state, f"Top contributor: {contributors[0]['login']} ({contributors[0]['contributions']} commits)", agent="DependencyAgent")
@@ -177,7 +180,7 @@ def dependency_agent_node(state: AgentState) -> AgentState:
     snapshot.set_lifecycle(session_id, "cloning", 18)
     state["progress"] = 18
     _log(state, "Cloning repository...", agent="DependencyAgent")
-    clone = clone_repo(repo_url)
+    clone = clone_repo(repo_url, token=token)
     if not clone["success"]:
         _agent(state, "DependencyAgent", "FAILED", "Clone failed")
         _log(state, f"Clone failed: {clone.get('error', 'unknown')}", "error", "DependencyAgent")

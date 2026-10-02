@@ -9,17 +9,28 @@ export const RepoProvider = ({ children }) => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const eventSourceRef = useRef(null);
 
-  const startAnalysis = async (repoUrl) => {
+  const startAnalysis = async (repoUrl, explicitToken = null) => {
     setIsAnalyzing(true);
     setLogs([]);
     setSession(null);
     setSessionState(null);
 
+    const activeToken = explicitToken || localStorage.getItem('argus_github_token') || '';
+
     try {
+      const headers = { 'Content-Type': 'application/json' };
+      if (activeToken) {
+        headers['Authorization'] = `Bearer ${activeToken}`;
+      }
+
       const res = await fetch('http://localhost:8000/analyze', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ repo_url: repoUrl }),
+        headers,
+        credentials: 'include',
+        body: JSON.stringify({
+          repo_url: repoUrl,
+          token: activeToken || undefined,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to start analysis');
