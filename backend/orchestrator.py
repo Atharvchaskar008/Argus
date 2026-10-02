@@ -29,7 +29,7 @@ from backend.analyzers.security_scanner import scan_repository
 from backend.agents.workflow import app as workflow_app
 
 
-def run_analysis(session_id: str, repo_url: str, execution_mode: str = "autonomous") -> None:
+def run_analysis(session_id: str, repo_url: str, execution_mode: str = "autonomous", auth_token: str | None = None) -> None:
     """Full analysis pipeline with lifecycle statuses, powered by LangGraph."""
     try:
         ok, err, normalized = validate_github_url(repo_url)
@@ -70,6 +70,7 @@ def run_analysis(session_id: str, repo_url: str, execution_mode: str = "autonomo
             "graph_edges": [],
             "github": {},
             "contributors": [],
+            "auth_token": auth_token or "",
             "error": "",
         }
 

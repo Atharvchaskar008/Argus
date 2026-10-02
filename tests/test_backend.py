@@ -57,3 +57,18 @@ def test_rate_limit(client):
 def test_export_missing(client):
     res = client.get("/export/nosuchsession")
     assert res.status_code == 404
+
+def test_auth_user_unauthenticated(client):
+    res = client.get("/auth/user")
+    assert res.status_code == 200
+    assert res.json["authenticated"] is False
+    assert res.json["user"] is None
+
+def test_auth_repos_unauthorized(client):
+    res = client.get("/auth/repos")
+    assert res.status_code == 401
+
+def test_auth_logout(client):
+    res = client.post("/auth/logout")
+    assert res.status_code == 200
+    assert res.json["authenticated"] is False

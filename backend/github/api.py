@@ -34,13 +34,21 @@ def parse_github_url(url: str) -> tuple[str, str] | None:
     return None
 
 
-def _get(url: str, timeout: int | None = None) -> Any:
-    r = _SESSION.get(url, timeout=timeout or GITHUB_TIMEOUT_SEC)
+def _get(url: str, timeout: int | None = None, token: str | None = None) -> Any:
+    if token:
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Accept": "application/vnd.github+json",
+            "User-Agent": "RepoSense/1.0",
+        }
+        r = requests.get(url, headers=headers, timeout=timeout or GITHUB_TIMEOUT_SEC)
+    else:
+        r = _SESSION.get(url, timeout=timeout or GITHUB_TIMEOUT_SEC)
     r.raise_for_status()
     return r.json()
 
 
-def fetch_full_github_intel(repo_url: str) -> dict:
+def fetch_full_github_intel(repo_url: str, token: str | None = None) -> dict:
     """Fetch comprehensive repository metadata."""
     parsed = parse_github_url(repo_url)
     if not parsed:
@@ -51,7 +59,7 @@ def fetch_full_github_intel(repo_url: str) -> dict:
     result: dict = {"full_name": f"{owner}/{repo}"}
 
     try:
-        data = _get(base)
+        data = _get(base, token=token)
     except requests.HTTPError as exc:
         log.warning("GitHub API HTTP error for %s: %s", repo_url, exc)
         return {"error": f"GitHub API {exc.response.status_code}", "full_name": f"{owner}/{repo}"}
@@ -83,7 +91,7 @@ def fetch_full_github_intel(repo_url: str) -> dict:
     )
 
     try:
-        langs = _get(f"{base}/languages")
+        langs = _get(f"{base}/languages", token=token)
         result["languages"] = sorted(langs.keys(), key=lambda k: langs[k], reverse=True)
         if not result.get("language") or result["language"] == "Unknown":
             result["language"] = result["languages"][0] if result["languages"] else "Unknown"
@@ -92,7 +100,7 @@ def fetch_full_github_intel(repo_url: str) -> dict:
         result["languages"] = []
 
     try:
-        contributors = _get(f"{base}/contributors?per_page=10")
+        contributors = _get(f"{base}/contributors?per_page=10", token=token)
         result["contributors"] = [
             {
                 "login": c.get("login"),
@@ -108,7 +116,7 @@ def fetch_full_github_intel(repo_url: str) -> dict:
         result["contributors_count"] = 0
 
     try:
-        commits = _get(f"{base}/commits?per_page=5")
+        commits = _get(f"{base}/commits?per_page=5", token=token)
         result["recent_commits"] = [
             {
                 "sha": c.get("sha", "")[:7],
@@ -123,7 +131,7 @@ def fetch_full_github_intel(repo_url: str) -> dict:
         result["recent_commits"] = []
 
     try:
-        prs = _get(f"{base}/pulls?state=open&per_page=5")
+        prs = _get(f"{base}/pulls?state=open&per_page=5", token=token)
         result["open_pull_requests"] = len(prs)
         result["pull_requests_sample"] = [
             {"title": p.get("title"), "number": p.get("number")} for p in prs[:5]
@@ -136,16 +144,16 @@ def fetch_full_github_intel(repo_url: str) -> dict:
     return result
 
 
-def fetch_repo_metadata(repo_url: str) -> dict:
-    return fetch_full_github_intel(repo_url)
+def fetch_repo_metadata(repo_url: str, token: str | None = None) -> dict:
+    return fetch_full_github_intel(repo_url, token=token)
 
 
-def fetch_contributors_count(owner: str, repo: str) -> int:
-    intel = fetch_full_github_intel(f"https://github.com/{owner}/{repo}")
+def fetch_contributors_count(owner: str, repo: str, token: str | None = None) -> int:
+    intel = fetch_full_github_intel(f"https://github.com/{owner}/{repo}", token=token)
     return intel.get("contributors_count", 0)
 
 
-def fetch_contributors(repo_url: str, max_count: int = 10) -> list[dict]:
+def fetch_contributors(repo_url: str, max_count: int = 10, token: str | None = None) -> list[dict]:
     """Fetch top contributors from GitHub API."""
     parsed = parse_github_url(repo_url)
     if not parsed:
@@ -153,7 +161,7 @@ def fetch_contributors(repo_url: str, max_count: int = 10) -> list[dict]:
     owner, repo = parsed
     url = f"https://api.github.com/repos/{owner}/{repo}/contributors?per_page={max_count}"
     try:
-        data = _get(url)
+        data = _get(url, token=token)
         return [
             {"login": c.get("login"), "contributions": c.get("contributions"), "avatar_url": c.get("avatar_url")}
             for c in data if isinstance(c, dict)

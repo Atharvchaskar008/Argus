@@ -12,7 +12,7 @@ except ImportError:  # pragma: no cover - defensive fallback for startup reliabi
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 ENV_FILE = BASE_DIR / ".env"
-DOTENV_LOADED = load_dotenv(ENV_FILE, override=False)
+DOTENV_LOADED = load_dotenv(ENV_FILE, override=True)
 
 
 def _env_flag(name: str, default: str = "false") -> bool:
@@ -44,6 +44,10 @@ OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
 OPENROUTER_DEFAULT_MODEL = os.getenv("OPENROUTER_DEFAULT_MODEL", "google/gemini-2.5-flash")
 OPENROUTER_TIMEOUT_SEC = _env_int("OPENROUTER_TIMEOUT_SEC", "60")
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN") or os.getenv("GITHUB_API_KEY", "")
+GITHUB_CLIENT_ID = os.getenv("GITHUB_CLIENT_ID", "")
+GITHUB_CLIENT_SECRET = os.getenv("GITHUB_CLIENT_SECRET", "")
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
+SECRET_KEY = os.getenv("SECRET_KEY", "argus-reposense-dev-secret-key-391274")
 
 _has_llm = bool(OPENROUTER_API_KEY or GEMINI_API_KEY or OPENAI_API_KEY or DEEPSEEK_API_KEY or GROK_API_KEY or ANTHROPIC_API_KEY or GROQ_API_KEY)
 LOW_COST_MODE = _env_flag("LOW_COST_MODE", "false" if _has_llm else "true")
