@@ -235,3 +235,5 @@ pytest tests/
 ## 📄 License
 
 MIT License. Built for developer productivity and repository transparency.
+
+Was made for jackhacks global hackathon by Atharv Chaskar and Prathamesh patil 
