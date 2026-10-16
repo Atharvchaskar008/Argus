@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { ChevronDown, Cpu } from 'lucide-react';
+import { apiUrl } from '../lib/api';
 
 const PRESET_MODELS = [
   { id: 'gemini', name: 'Gemini Flash (Default)', provider: 'Google' },
@@ -13,7 +14,7 @@ export default function ProviderSelector({ selectedModel, onSelect }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('http://localhost:8000/models')
+    fetch(apiUrl('/models'))
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data) && data.length > 0) {

@@ -1,8 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { API_BASE } from '../lib/api';
 
 const AuthContext = createContext();
-
-const API_BASE = 'http://localhost:8000';
 
 export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(() => localStorage.getItem('argus_github_token') || '');

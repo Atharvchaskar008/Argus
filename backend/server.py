@@ -17,6 +17,7 @@ from flask import Flask, Response, jsonify, redirect, request, send_from_directo
 from flask_cors import CORS
 import requests
 from werkzeug.exceptions import HTTPException
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from backend.config import (
     FRONTEND_URL,
@@ -42,6 +43,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 FRONTEND = BASE_DIR / "frontend" / "dist"
 
 app = Flask(__name__, static_folder=None)
+# Behind a reverse proxy (Render, Docker ingress) trust one hop of X-Forwarded-*,
+# so rate limiting sees the real client IP and OAuth callback URLs use https.
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 app.secret_key = SECRET_KEY
 CORS(
     app,

@@ -72,3 +72,17 @@ def test_auth_logout(client):
     res = client.post("/auth/logout")
     assert res.status_code == 200
     assert res.json["authenticated"] is False
+
+def test_rate_limit_is_per_forwarded_client(client):
+    # Behind a proxy, each client is identified by X-Forwarded-For (ProxyFix),
+    # so one busy client must not exhaust the limit for everyone else.
+    import backend.core.rate_limiter as rl
+    rl._buckets.clear()
+
+    for _ in range(10):
+        client.post("/analyze", json={}, headers={"X-Forwarded-For": "203.0.113.1"})
+
+    blocked = client.post("/analyze", json={}, headers={"X-Forwarded-For": "203.0.113.1"})
+    other = client.post("/analyze", json={}, headers={"X-Forwarded-For": "203.0.113.2"})
+    assert blocked.status_code == 429
+    assert other.status_code == 400

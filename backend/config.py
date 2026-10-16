@@ -1,6 +1,7 @@
 """Centralized configuration - loads .env via python-dotenv."""
 
 import os
+import secrets
 from pathlib import Path
 
 try:
@@ -46,8 +47,10 @@ OPENROUTER_TIMEOUT_SEC = _env_int("OPENROUTER_TIMEOUT_SEC", "60")
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN") or os.getenv("GITHUB_API_KEY", "")
 GITHUB_CLIENT_ID = os.getenv("GITHUB_CLIENT_ID", "")
 GITHUB_CLIENT_SECRET = os.getenv("GITHUB_CLIENT_SECRET", "")
-FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
-SECRET_KEY = os.getenv("SECRET_KEY", "argus-reposense-dev-secret-key-391274")
+# Render injects RENDER_EXTERNAL_URL; there the UI is served by this same app.
+FRONTEND_URL = os.getenv("FRONTEND_URL") or os.getenv("RENDER_EXTERNAL_URL") or "http://localhost:5173"
+# Without an explicit key, sign sessions with a per-process random key instead of a public default.
+SECRET_KEY = os.getenv("SECRET_KEY") or secrets.token_hex(32)
 
 _has_llm = bool(OPENROUTER_API_KEY or GEMINI_API_KEY or OPENAI_API_KEY or DEEPSEEK_API_KEY or GROK_API_KEY or ANTHROPIC_API_KEY or GROQ_API_KEY)
 LOW_COST_MODE = _env_flag("LOW_COST_MODE", "false" if _has_llm else "true")
