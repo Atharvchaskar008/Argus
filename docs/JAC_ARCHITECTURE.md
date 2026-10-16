@@ -1,6 +1,6 @@
 # Jac Architecture — Argus
 
-> **Historical document.** This describes the original Jac/JacHacks design. The current runtime is a Python LangGraph workflow (`backend/agents/workflow.py`); see the [README](../README.md#how-it-works). Updating this doc is tracked as an open issue.
+> **Historical document.** This describes the original Jac/JacHacks design. The current runtime is a Python LangGraph workflow (`backend/agents/workflow.py`); see the [README](../README.md#how-it-works). Updating this doc is tracked in [#22](https://github.com/Atharvchaskar008/Argus/issues/22).
 
 Argus is a **graph-native autonomous engineering intelligence platform** powered by Jac agents. Python is a **tooling layer only**; Jac owns orchestration, memory, and coordination.
 

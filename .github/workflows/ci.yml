@@ -45,7 +45,7 @@ jobs:
       - run: npm ci
       - run: npm run build
       - name: Lint
-        # Non-blocking until the existing ESLint errors (tracked as NSoC issues) are fixed.
+        # Non-blocking until the pre-existing ESLint errors are fixed (issues #6 and #14).
         continue-on-error: true
         run: npx eslint .
 

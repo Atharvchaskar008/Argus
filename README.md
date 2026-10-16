@@ -186,13 +186,14 @@ Read the [Contributing guide](CONTRIBUTING.md) for setup, conventions and recipe
 
 ## Roadmap
 
-- UI for repository comparison, report export and fix approvals (the APIs already exist)
-- Import parsing for JavaScript/TypeScript, then Go and Java
-- CVE scanning for lock files and more ecosystems
-- GitLab and Bitbucket support
-- Persistent session storage and SARIF export for GitHub code scanning
+- UI for repository comparison ([#24](https://github.com/Atharvchaskar008/Argus/issues/24)), report export ([#12](https://github.com/Atharvchaskar008/Argus/issues/12)) and fix approvals ([#25](https://github.com/Atharvchaskar008/Argus/issues/25)). The APIs already exist.
+- Import parsing for JavaScript/TypeScript ([#26](https://github.com/Atharvchaskar008/Argus/issues/26)), then more languages
+- CVE scanning for lock files and `pyproject.toml` ([#19](https://github.com/Atharvchaskar008/Argus/issues/19))
+- GitLab and Bitbucket support ([#27](https://github.com/Atharvchaskar008/Argus/issues/27))
+- Persistent session storage ([#28](https://github.com/Atharvchaskar008/Argus/issues/28)) and SARIF export for GitHub code scanning ([#23](https://github.com/Atharvchaskar008/Argus/issues/23))
+- Direct LLM providers and local models via Ollama ([#29](https://github.com/Atharvchaskar008/Argus/issues/29))
 
-Each item is tracked as an issue. Pick one up!
+See [all open NSoC'26 issues](https://github.com/Atharvchaskar008/Argus/issues?q=is%3Aissue+is%3Aopen+label%3A%22NSoC%2726%22) and pick one up!
 
 ## Maintainers
 
