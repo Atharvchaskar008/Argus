@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-RepoSense local health checker.
+Argus local health checker.
 Run AFTER starting the server:  python server.py
 Then in another terminal:        python check_local.py
 """
@@ -47,7 +47,7 @@ def check(label, url, method="GET", body=None, expect_status=200, critical=True)
             failures += 1
         return ""
 
-print("\n🔍 RepoSense Local Health Check")
+print("\n🔍 Argus Local Health Check")
 print(f"   Target: {BASE}\n")
 
 print("── Core routes ──")
@@ -133,7 +133,7 @@ print(f"  {'✓' if rate_ok else '~'}  Rate limit hit on request 11: {last_statu
 
 print(f"\n{'─'*40}")
 if failures == 0:
-    print(f"✅  All critical checks passed. RepoSense is running correctly.\n")
+    print(f"✅  All critical checks passed. Argus is running correctly.\n")
     sys.exit(0)
 else:
     print(f"❌  {failures} critical check(s) failed. See output above.\n")

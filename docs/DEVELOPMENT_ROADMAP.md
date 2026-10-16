@@ -1,4 +1,4 @@
-# RepoSense Development Roadmap
+# Argus Development Roadmap
 
 ## Phase 1 — Foundation (Complete)
 

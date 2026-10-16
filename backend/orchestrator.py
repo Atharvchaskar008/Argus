@@ -1,5 +1,5 @@
 """
-RepoSense analysis orchestrator.
+Argus analysis orchestrator.
 
 Coordinates real repository analysis, GitHub API, and LLM insights.
 Delegates heavy lifting to stateless utils; persists state via snapshot.

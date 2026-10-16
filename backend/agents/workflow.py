@@ -1,5 +1,5 @@
 """
-LangGraph agent workflow engine for RepoSense.
+LangGraph agent workflow engine for Argus.
 
 Replaces simulated Jac OSP runtime with stateful StateGraph orchestration.
 """
@@ -31,7 +31,7 @@ from backend.github.tools import scan_dependencies_for_cves
 from backend.analyzers.summarizer import _detect_stack, heuristic_summary
 from backend.llm.client import generate as llm_generate
 
-log = logging.getLogger("reposense.workflow")
+log = logging.getLogger("argus.workflow")
 
 
 class AgentState(TypedDict):

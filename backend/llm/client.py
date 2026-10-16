@@ -19,7 +19,7 @@ from backend.config import (
     ANTHROPIC_API_KEY,
 )
 
-log = logging.getLogger("reposense.llm")
+log = logging.getLogger("argus.llm")
 
 
 class LLMProviderError(Exception):
@@ -110,8 +110,8 @@ def _openrouter(prompt: str, system: str = "", model: str = "", max_tokens: int 
             max_tokens=max_tokens,
             temperature=0.3,
             extra_headers={
-                "HTTP-Referer": "https://reposense.dev",
-                "X-Title": "RepoSense",
+                "HTTP-Referer": "https://github.com/Atharvchaskar008/Argus",
+                "X-Title": "Argus",
             },
         )
 
@@ -198,7 +198,7 @@ def complete(
 def chat(session_context: str, question: str, model: str | None = None) -> tuple[str, str]:
     """Chat about a repository analysis session."""
     system_instruction = (
-        "You are RepoSense, an expert AI software architect and repository intelligence assistant. "
+        "You are Argus, an expert AI software architect and repository intelligence assistant. "
         "Provide thorough, accurate, and structured markdown answers based on the repository analysis context provided. "
         "Use bullet points, code snippets, and clear headings where appropriate."
     )
@@ -233,7 +233,7 @@ def list_available_models() -> list[dict]:
             "https://openrouter.ai/api/v1/models",
             headers={
                 "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-                "HTTP-Referer": "https://reposense.dev",
+                "HTTP-Referer": "https://github.com/Atharvchaskar008/Argus",
             },
         )
         with urllib.request.urlopen(req, timeout=15) as resp:

@@ -68,7 +68,7 @@ class MissionEngine:
 
     def run(self) -> None:
         snapshot.init_session(self.session_id, self.repo_url, self.mode)
-        self._log("RepoSense graph-native mission control online", agent="MonitorAgent")
+        self._log("Argus graph-native mission control online", agent="MonitorAgent")
         self._agent("MonitorAgent", "RUNNING", "Orchestrating autonomous agents")
 
         repo_node = self.graph.add(

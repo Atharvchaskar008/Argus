@@ -10,7 +10,7 @@ import requests
 
 from backend.config import GITHUB_TIMEOUT_SEC, GITHUB_TOKEN
 
-log = logging.getLogger("reposense.github")
+log = logging.getLogger("argus.github")
 
 _SESSION = requests.Session()
 if GITHUB_TOKEN:
@@ -18,12 +18,12 @@ if GITHUB_TOKEN:
         {
             "Authorization": f"Bearer {GITHUB_TOKEN}",
             "Accept": "application/vnd.github+json",
-            "User-Agent": "RepoSense/1.0",
+            "User-Agent": "Argus/1.0",
         }
     )
 else:
     _SESSION.headers.update(
-        {"Accept": "application/vnd.github+json", "User-Agent": "RepoSense/1.0"}
+        {"Accept": "application/vnd.github+json", "User-Agent": "Argus/1.0"}
     )
 
 
@@ -39,7 +39,7 @@ def _get(url: str, timeout: int | None = None, token: str | None = None) -> Any:
         headers = {
             "Authorization": f"Bearer {token}",
             "Accept": "application/vnd.github+json",
-            "User-Agent": "RepoSense/1.0",
+            "User-Agent": "Argus/1.0",
         }
         r = requests.get(url, headers=headers, timeout=timeout or GITHUB_TIMEOUT_SEC)
     else:

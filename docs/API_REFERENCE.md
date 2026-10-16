@@ -1,11 +1,11 @@
-# RepoSense API Reference
+# Argus API Reference
 
 | Method | Path | Description | Request Body | Response Shape |
 |---|---|---|---|---|
 | POST | `/analyze` | Starts repository analysis. | `{"repo_url": "...", "execution_mode": "autonomous"}` | `{"session_id": "...", "status": "queued"}` |
 | POST | `/compare` | Starts parallel analysis of two repositories. | `{"repos": ["url1", "url2"]}` | `{"comparison_id": "...", "session_ids": ["id1", "id2"], "repos": ["url1", "url2"], "status": "both_queued"}` |
 | GET | `/compare/result` | Returns side-by-side comparison. | N/A (Uses query params `?a=<sid1>&b=<sid2>`) | `{"a": {...}, "b": {...}}` |
-| GET | `/health` | Live connectivity and configuration check. | N/A | `{"status": "ok", "service": "RepoSense", ...}` |
+| GET | `/health` | Live connectivity and configuration check. | N/A | `{"status": "ok", "service": "Argus", ...}` |
 | GET | `/sessions` | Returns lightweight metadata for all active sessions. | N/A | `[{"id": "...", "status": "...", "repo_url": "...", ...}]` |
 | GET | `/session/<session_id>` | Returns full session details. | N/A | `{"status": "...", "progress": 100, ...}` |
 | DELETE | `/session/<session_id>` | Deletes an active session and its artifacts. | N/A | `{"deleted": true}` |

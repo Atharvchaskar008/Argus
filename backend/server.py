@@ -1,5 +1,5 @@
 """
-RepoSense production API - Flask + SSE + static frontend.
+Argus production API - Flask + SSE + static frontend.
 JacCloud-ready: PORT env, CORS, real analysis via orchestrator.
 """
 
@@ -36,7 +36,7 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
 )
-log = logging.getLogger("reposense")
+log = logging.getLogger("argus")
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 FRONTEND = BASE_DIR / "frontend" / "dist"
@@ -546,7 +546,7 @@ def export_session(session_id):
     session = snapshot.export_report(session_id)
     if not session:
         return jsonify({"error": "session not found"}), 404
-    filename = f"reposense_{session_id}.json"
+    filename = f"argus_{session_id}.json"
     response = Response(
         json.dumps(session, indent=2),
         mimetype="application/json",
@@ -585,5 +585,5 @@ threading.Thread(target=_startup_cleanup, daemon=True).start()
 if __name__ == "__main__":
     host = os.getenv("HOST", "0.0.0.0")
     port = PORT
-    log.info("RepoSense listening on http://%s:%s", host, port)
+    log.info("Argus listening on http://%s:%s", host, port)
     app.run(host=host, port=port, threaded=True, debug=False)

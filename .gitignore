@@ -19,3 +19,7 @@ dist/
 .vscode/
 frontend/dist/
 frontend/node_modules/
+
+# Local-only launch notes (never commit)
+harness.md
+SUBMISSION.md

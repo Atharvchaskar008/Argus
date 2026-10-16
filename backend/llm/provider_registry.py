@@ -3,7 +3,7 @@
 import logging
 from backend.config import OPENROUTER_API_KEY, OPENROUTER_DEFAULT_MODEL
 
-log = logging.getLogger("reposense.registry")
+log = logging.getLogger("argus.registry")
 
 
 class ProviderRegistry:

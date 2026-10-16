@@ -1,6 +1,6 @@
-# LLM and API Setup — RepoSense
+# LLM and API Setup — Argus
 
-RepoSense is **agent-first, LLM-second**. Most intelligence comes from AST parsing, graph traversal, and heuristic security rules. LLMs enhance specific agents only where reasoning or summarization adds clear value.
+Argus is **agent-first, LLM-second**. Most intelligence comes from AST parsing, graph traversal, and heuristic security rules. LLMs enhance specific agents only where reasoning or summarization adds clear value.
 
 ## Agent LLM Requirements
 
