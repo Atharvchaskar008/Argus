@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useRef, useCallback } from 'react';
+import { apiUrl } from '../lib/api';
 
 const RepoContext = createContext();
 
@@ -23,7 +24,7 @@ export const RepoProvider = ({ children }) => {
         headers['Authorization'] = `Bearer ${activeToken}`;
       }
 
-      const res = await fetch('http://localhost:8000/analyze', {
+      const res = await fetch(apiUrl('/analyze'), {
         method: 'POST',
         headers,
         credentials: 'include',
@@ -49,7 +50,7 @@ export const RepoProvider = ({ children }) => {
     if (eventSourceRef.current) {
       eventSourceRef.current.close();
     }
-    const es = new EventSource(`http://localhost:8000/stream/${sessionId}`);
+    const es = new EventSource(apiUrl(`/stream/${sessionId}`));
     eventSourceRef.current = es;
 
     es.onmessage = (e) => {

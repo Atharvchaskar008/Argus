@@ -38,7 +38,7 @@ def _github_get(path: str) -> dict[str, Any]:
         f"{GITHUB_API}{path}",
         headers={
             "Accept": "application/vnd.github+json",
-            "User-Agent": "RepoSense-JacHacks",
+            "User-Agent": "Argus/1.0",
         },
     )
     with urllib.request.urlopen(req, timeout=20) as resp:
@@ -50,7 +50,7 @@ def _github_get_text(path: str) -> str:
         f"{GITHUB_API}{path}",
         headers={
             "Accept": "application/vnd.github.raw",
-            "User-Agent": "RepoSense-JacHacks",
+            "User-Agent": "Argus/1.0",
         },
     )
     with urllib.request.urlopen(req, timeout=20) as resp:

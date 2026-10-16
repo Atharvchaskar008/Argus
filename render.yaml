@@ -1,0 +1,30 @@
+# Render Blueprint — https://render.com/docs/blueprint-spec
+# One-click deploy: https://render.com/deploy?repo=https://github.com/Atharvchaskar008/Argus
+services:
+  - type: web
+    name: argus
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      # LLM features (architecture narrative, Q&A, fix suggestions). Optional:
+      # without a key Argus runs in heuristics-only mode.
+      - key: OPENROUTER_API_KEY
+        sync: false
+      # Raises the GitHub API rate limit for repository metadata.
+      - key: GITHUB_TOKEN
+        sync: false
+      # GitHub OAuth (private repositories). Callback URL:
+      # https://<your-service>.onrender.com/auth/github/callback
+      - key: GITHUB_CLIENT_ID
+        sync: false
+      - key: GITHUB_CLIENT_SECRET
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true
+      - key: MAX_REPO_FILES
+        value: "8000"
+      - key: CLONE_TIMEOUT_SEC
+        value: "120"

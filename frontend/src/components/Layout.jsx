@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Activity, Terminal, ArrowLeft, LogOut, ChevronDown, Lock, ExternalLink, X } from 'lucide-react';
+import { Eye, Terminal, ArrowLeft, LogOut, ChevronDown, Lock, ExternalLink, X } from 'lucide-react';
 import { useRepo } from '../context/RepoContext';
 import { useAuth } from '../context/AuthContext';
 import ActivityCenter from './ActivityCenter';
@@ -91,7 +91,7 @@ export default function Layout({ children }) {
               color: '#000000', cursor: 'pointer' 
             }}
           >
-            <Activity size={24} />
+            <Eye size={24} />
             Argus
           </div>
         </div>

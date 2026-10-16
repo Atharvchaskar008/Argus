@@ -203,7 +203,7 @@ def export_report(session_id: str) -> dict | None:
     s["report_metadata"] = {
         "exported_at": _iso(),
         "version": "1.0",
-        "tool": "RepoSense",
+        "tool": "Argus",
         "total_findings": len(s.get("findings", [])),
         "total_fixes": len(s.get("fixes", [])),
         "overall_grade": s.get("code_quality", {}).get("grade", "N/A"),

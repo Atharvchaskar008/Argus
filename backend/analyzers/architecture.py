@@ -4,7 +4,7 @@ import re
 from pathlib import Path
 from backend.llm.client import generate as llm_generate
 
-log = logging.getLogger("reposense.architecture")
+log = logging.getLogger("argus.architecture")
 
 ARCHITECTURE_PROMPT = """You are an expert software architect.
 Analyze the provided GitHub repository and generate Mermaid flowchart diagrams that accurately

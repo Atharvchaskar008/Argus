@@ -1,0 +1,47 @@
+name: Feature request
+description: Suggest a new capability or an improvement to an existing one.
+title: "feat: "
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Maintainers triage new ideas and add an NSoC level (`level1`, `level2` or `level3`) before the issue can be assigned.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What can't you do today, or what is painful? Who is affected?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: What should Argus do? Include UI sketches, API shapes or example output if you can.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Frontend / UI
+        - Backend / API
+        - Analyzers (security, quality, architecture)
+        - Agents / workflow
+        - LLM integration
+        - Docs
+        - DevOps / CI / deployment
+    validations:
+      required: true
+  - type: checkboxes
+    id: contribute
+    attributes:
+      label: Contribution
+      options:
+        - label: I would like to implement this myself (NSoC'26 contributor).

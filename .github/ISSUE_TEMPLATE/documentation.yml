@@ -1,0 +1,28 @@
+name: Documentation
+description: Something in the README, CONTRIBUTING guide or docs/ is missing, wrong or unclear.
+title: "docs: "
+labels: ["documentation", "needs-triage"]
+body:
+  - type: input
+    id: location
+    attributes:
+      label: Which page or file?
+      placeholder: "docs/API_REFERENCE.md, README > Quick start"
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What is wrong or missing?
+    validations:
+      required: true
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested change
+  - type: checkboxes
+    id: contribute
+    attributes:
+      label: Contribution
+      options:
+        - label: I would like to fix this myself (NSoC'26 contributor).

@@ -1,6 +1,8 @@
-# Jac Architecture — RepoSense
+# Jac Architecture — Argus
 
-RepoSense is a **graph-native autonomous engineering intelligence platform** powered by Jac agents. Python is a **tooling layer only**; Jac owns orchestration, memory, and coordination.
+> **Historical document.** This describes the original Jac/JacHacks design. The current runtime is a Python LangGraph workflow (`backend/agents/workflow.py`); see the [README](../README.md#how-it-works). Updating this doc is tracked in [#22](https://github.com/Atharvchaskar008/Argus/issues/22).
+
+Argus is a **graph-native autonomous engineering intelligence platform** powered by Jac agents. Python is a **tooling layer only**; Jac owns orchestration, memory, and coordination.
 
 ## Responsibility Split
 
@@ -71,7 +73,7 @@ Edge types: `imports_edge`, `discovered_by`, `generated_task`, `approval_request
 
 ## Why This Fits Jac
 
-Jac is designed for **object-spatial programming**: walkers traverse graphs, discover work, and coordinate through relationships. RepoSense maps directly:
+Jac is designed for **object-spatial programming**: walkers traverse graphs, discover work, and coordinate through relationships. Argus maps directly:
 
 - Repositories → spatial memory
 - Agents → walkers

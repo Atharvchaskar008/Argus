@@ -1,5 +1,5 @@
 """
-RepoSense production API - Flask + SSE + static frontend.
+Argus production API - Flask + SSE + static frontend.
 JacCloud-ready: PORT env, CORS, real analysis via orchestrator.
 """
 
@@ -17,6 +17,7 @@ from flask import Flask, Response, jsonify, redirect, request, send_from_directo
 from flask_cors import CORS
 import requests
 from werkzeug.exceptions import HTTPException
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from backend.config import (
     FRONTEND_URL,
@@ -36,12 +37,15 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
 )
-log = logging.getLogger("reposense")
+log = logging.getLogger("argus")
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 FRONTEND = BASE_DIR / "frontend" / "dist"
 
 app = Flask(__name__, static_folder=None)
+# Behind a reverse proxy (Render, Docker ingress) trust one hop of X-Forwarded-*,
+# so rate limiting sees the real client IP and OAuth callback URLs use https.
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 app.secret_key = SECRET_KEY
 CORS(
     app,
@@ -546,7 +550,7 @@ def export_session(session_id):
     session = snapshot.export_report(session_id)
     if not session:
         return jsonify({"error": "session not found"}), 404
-    filename = f"reposense_{session_id}.json"
+    filename = f"argus_{session_id}.json"
     response = Response(
         json.dumps(session, indent=2),
         mimetype="application/json",
@@ -585,5 +589,5 @@ threading.Thread(target=_startup_cleanup, daemon=True).start()
 if __name__ == "__main__":
     host = os.getenv("HOST", "0.0.0.0")
     port = PORT
-    log.info("RepoSense listening on http://%s:%s", host, port)
+    log.info("Argus listening on http://%s:%s", host, port)
     app.run(host=host, port=port, threaded=True, debug=False)

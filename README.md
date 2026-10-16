@@ -1,239 +1,207 @@
-Argus
+<div align="center">
 
-> **Autonomous AI-Powered Repository Intelligence & System Architecture Platform**
+<img src="frontend/public/argus-mark.svg" alt="Argus logo" width="88" />
 
-Argus is an autonomous, graph-native engineering intelligence platform built with a **Python (Flask + LangGraph)** backend and a modern **React** frontend. It deploys a swarm of specialized AI agents to analyze public GitHub repositories, generate interactive dependency graphs, reverse-engineer software architectures, identify security vulnerabilities, compute impact analysis, and generate remediation patches while streaming progress in real time using Server-Sent Events (SSE).
+# Argus
 
----
+**The all-seeing AI analyst for GitHub repositories.**
 
-## Key Features
+Paste a repository URL. Argus clones it, maps its dependencies, draws its architecture, looks for vulnerabilities and known CVEs, measures the blast radius of a change and answers questions about the code. Every step streams live to your browser.
 
-### Dynamic Dependency Graph
+[![CI](https://github.com/Atharvchaskar008/Argus/actions/workflows/ci.yml/badge.svg)](https://github.com/Atharvchaskar008/Argus/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-black.svg)](LICENSE)
+[![NSoC'26](https://img.shields.io/badge/NSoC%2726-participating-ff007f.svg)](CONTRIBUTING.md#nexus-spring-of-code-nsoc26)
+[![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-3776AB?logo=python&logoColor=white)
+![React 19](https://img.shields.io/badge/react-19-61DAFB?logo=react&logoColor=black)
 
-* AST-based source code parsing
-* Extracts module imports, classes, functions, and file dependencies
-* Generates an interactive repository dependency graph
-* Visualizes relationships between project components
+[Quick start](#quick-start) · [Deploy](#deploy) · [Contribute](CONTRIBUTING.md) · [Good first issues](https://github.com/Atharvchaskar008/Argus/issues?q=is%3Aissue+is%3Aopen+label%3Alevel1) · [Report a bug](https://github.com/Atharvchaskar008/Argus/issues/new/choose)
 
-### System Architecture Analysis
-
-* Reverse-engineers complete software architecture
-* Generates Structurizr C4 models
-
-  * System Context
-  * Container
-  * Component
-* Produces request flow diagrams
-* Renders architecture using Mermaid.js
-
-### Security Scanning
-
-Performs both heuristic analysis and vulnerability database scanning.
-
-**Static Security Detection**
-
-* Hardcoded credentials
-* SQL injection risks
-* Insecure subprocess execution
-* Command injection
-* Unsafe deserialization
-* Additional critical security anti-patterns
-
-**OSV Vulnerability Detection**
-
-* Scans dependency manifests including:
-
-  * `requirements.txt`
-  * `package.json`
-  * `poetry.lock`
-  * `package-lock.json`
-* Queries Google's OSV database for known CVEs
-
-### Blast Radius Impact Analysis
-
-* Calculates downstream dependency impact
-* Identifies affected modules and files
-* Measures dependency propagation
-* Highlights critical graph nodes
-
-### Universal LLM Gateway
-
-* Integrates with OpenRouter
-* Supports more than 200 language models
-* Dynamic provider selection
-* Automatic fallback support
-
-Compatible providers include:
-
-* Gemini
-* Claude
-* GPT
-* Llama
-* DeepSeek
-* Mistral
-* Qwen
-
-### Repository Q&A
-
-Ask natural language questions about:
-
-* Repository architecture
-* Code quality
-* Dependency relationships
-* Security posture
-* Project structure
-
-Supports repository context up to **20,000 characters**.
-
-### Real-Time Agent Activity
-
-Monitor every stage of repository analysis through Server-Sent Events (SSE).
-
-Includes:
-
-* Live workflow progress
-* Agent status
-* Execution logs
-* State transitions
-* Generated artifacts
-
-### Repository Comparison
-
-Compare two repositories side by side using the `/compare` endpoint.
-
-Comparison includes:
-
-* Quality metrics
-* Security findings
-* Dependency complexity
-* Architecture insights
-* Recommendations
-
-### Human-in-the-Loop Fix Approval
-
-* AI-generated remediation patches
-* Supervisor approval before applying changes
-* Safe and controlled code modifications
+</div>
 
 ---
 
-## Repository Size & Capacity
+## Why Argus?
 
-RepoSense is designed to efficiently analyze repositories ranging from small projects to large enterprise codebases.
+Opening an unfamiliar codebase is slow. You have to find out how it's structured, which modules everything depends on, what breaks if you touch a file and whether it ships with known vulnerabilities. Argus answers those questions in a couple of minutes by combining **deterministic analysis** (AST parsing, graph algorithms, rule-based scanning, the OSV vulnerability database) with **LLM reasoning** where it adds value. It still works with no API keys at all.
 
-| Parameter                   | Default               | Environment Variable    | Description                                                                                            |
-| --------------------------- | --------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------ |
-| Maximum Repository Files    | **8,000**             | `MAX_REPO_FILES`        | Maximum number of source files analyzed (excluding `.git`, `node_modules`, `venv`, and `__pycache__`). |
-| Git Clone Timeout           | **120 seconds**       | `CLONE_TIMEOUT_SEC`     | Maximum duration allowed for shallow repository cloning.                                               |
-| Detailed File Analysis      | **100 files**         | Internal                | Maximum files processed for detailed AST parsing and feature extraction.                               |
-| Architecture Context Window | **16,000 tokens**     | `max_input_tokens`      | Maximum context sent to the LLM for architecture generation.                                           |
-| LLM Output Limit            | **8,192 tokens**      | `max_output_tokens`     | Maximum generated output size for architecture and analysis.                                           |
-| Repository Q&A Context      | **20,000 characters** | Internal                | Maximum repository context provided during interactive Q&A.                                            |
-| Session Cache Duration      | **24 hours**          | `SESSION_MAX_AGE_HOURS` | Duration for retaining repository analysis sessions.                                                   |
+## Features
 
-> **Scaling for Large Repositories**
->
-> For repositories larger than **8,000 files**, update your `.env` configuration:
->
-> ```env
-> MAX_REPO_FILES=25000
-> CLONE_TIMEOUT_SEC=300
-> ```
->
-> Increasing these values allows RepoSense to process significantly larger codebases while providing sufficient time for repository cloning and analysis.
+| | What you get |
+|---|---|
+| 🕸️ **Dependency graph** | Python files are parsed with `ast` (imports, classes, functions) into a NetworkX graph with centrality metrics. JS/TS files are discovered and listed. |
+| 🏛️ **Architecture diagrams** | C4 *System Context*, *Container* and *Component* views plus request-flow diagrams, rendered with Mermaid. LLM-generated, with a heuristic fallback. |
+| 🛡️ **Security scanning** | 10 heuristic rules (hard-coded secrets, `eval`/`exec`, `shell=True`, SQL injection, unsafe `pickle`, `innerHTML` XSS, open redirects, debug mode…) plus CVE lookups in [OSV.dev](https://osv.dev) for dependencies in `requirements.txt` and `package.json`. |
+| 💥 **Blast-radius analysis** | See which modules are affected downstream when a file changes, and which nodes are most critical. |
+| 📊 **Quality and maintainability** | Graded code-quality and maintainability reports with prioritised recommendations. |
+| 💬 **Ask the repository** | Chat about architecture, risks and "what should I fix first?", grounded in the analysis results (up to 20,000 characters of context). |
+| 🩹 **AI fix suggestions** | Remediation patches for findings, gated behind a human approval step (API). |
+| 📡 **Live agent activity** | Seven specialised agents report progress over Server-Sent Events. |
+| 🔐 **Private repositories** | Sign in with GitHub (OAuth) to pick and analyse your private repos. |
+| 🔌 **REST API** | Everything in the UI, plus repository comparison (`/compare`) and JSON report export (`/export`). See [docs/API_REFERENCE.md](docs/API_REFERENCE.md). |
 
-
----
-
-## 🏗 Architecture Overview
+## How it works
 
 ```mermaid
-flowchart TD
-    User["Developer / Architect"]
-    FE["React Frontend (Vite)"]
-    API["Flask REST & SSE Server"]
-    Orch["LangGraph Swarm Orchestrator"]
-    Agents["Specialized Agents"]
-    LLM["OpenRouter LLM Gateway"]
-    OSV["Google OSV CVE API"]
-    FS["Cloned Workspace FS"]
+flowchart LR
+    User(["Developer"]) -->|repo URL| UI["React UI<br/>(Vite)"]
+    UI -->|"POST /analyze"| API["Flask API"]
+    API -->|"SSE /stream"| UI
+    API --> WF["LangGraph workflow"]
+    WF --> Clone["Shallow git clone"]
+    WF --> Agents
 
-    User -->|Enters Repo URL| FE
-    FE -->|POST /analyze & SSE Stream| API
-    API -->|Triggers Workflow| Orch
-    Orch -->|Runs Swarm| Agents
-    Agents -->|Parses Code| FS
-    Agents -->|Scans Vulnerabilities| OSV
-    Agents -->|Generates C4 & Fixes| LLM
-    API -->|Real-Time SSE Events| FE
+    subgraph Agents["Agent swarm"]
+        Dep["DependencyAgent"]
+        Sec["SecurityAgent"]
+        Imp["ImpactAgent"]
+        Arch["ArchitectureAgent"]
+        Fix["FixAgent"]
+        Exp["ExplanationAgent"]
+        Mon["MonitorAgent"]
+    end
+
+    Sec -->|CVE lookups| OSV[("OSV.dev")]
+    Arch & Fix & Exp -->|optional| LLM[("OpenRouter LLMs")]
+    API -->|OAuth| GH[("GitHub API")]
 ```
 
-### Agent Swarm Modules
-- **`DependencyAgent`**: Scans tree, parses imports, builds AST dependency graph (`graph_builder.py`).
-- **`SecurityAgent`**: Performs heuristic security rules scan & queries OSV CVE API (`security_scanner.py`, `tools.py`).
-- **`ImpactAgent`**: Computes blast radius metrics and graph node centrality (`graph_builder.py`).
-- **`ArchitectureAgent`**: Generates Mermaid C4 models & request flowcharts (`architecture.py`).
-- **`FixAgent`**: Produces remediation code patches requiring supervisor approval (`fixer.py`).
-- **`ExplanationAgent`**: Handles repository Q&A deep dives (`orchestrator.py`).
-- **`MonitorAgent`**: Tracks session state, logs, and health metrics (`snapshot.py`).
+| Agent | Responsibility | Main code |
+|---|---|---|
+| `DependencyAgent` | Walk the tree, parse imports, build the dependency graph | `backend/analyzers/parser.py`, `backend/core/graph_builder.py` |
+| `SecurityAgent` | Heuristic rules + OSV CVE lookups | `backend/analyzers/security_scanner.py`, `backend/github/tools.py` |
+| `ImpactAgent` | Blast radius and node centrality | `backend/core/graph_builder.py` |
+| `ArchitectureAgent` | C4 models and flow diagrams | `backend/analyzers/architecture.py` |
+| `FixAgent` | Patch suggestions awaiting approval | `backend/llm/fixer.py` |
+| `ExplanationAgent` | Repository Q&A | `backend/orchestrator.py`, `backend/llm/client.py` |
+| `MonitorAgent` | Session state, logs, health | `backend/core/snapshot.py` |
 
----
+The agents run in a LangGraph state graph (`backend/agents/workflow.py`). The built React UI is served by the same Flask app, so a deployment is a single service.
 
-## 🛠 Quick Start
+## Tech stack
 
-### 1. Prerequisites
-- **Python 3.10+**
-- **Node.js 18+** & **npm**
-- **Git**
+| Layer | Technology | Used for |
+|---|---|---|
+| **Backend** | Python 3.10+, Flask 3, flask-cors | REST API, Server-Sent Events, static UI hosting |
+| **Agents** | LangGraph, langchain-core | Stateful multi-agent analysis workflow |
+| **Analysis** | Python `ast`, NetworkX, GitPython | Parsing, dependency graph and centrality, shallow clones |
+| **Security data** | OSV.dev API | Known-vulnerability lookups for dependencies |
+| **LLM** | OpenAI Python SDK → OpenRouter | One key for 200+ models (Gemini, Claude, GPT, Llama, DeepSeek, Mistral, Qwen…) |
+| **Auth** | GitHub OAuth Apps | Sign-in and private-repository access |
+| **Frontend** | React 19, Vite 8 | Single-page app |
+| **UI libraries** | Mermaid 11, framer-motion, lucide-react, react-markdown | Diagrams, motion, icons, Markdown answers |
+| **Testing and quality** | pytest, ESLint 10 | Backend tests, frontend linting |
+| **Delivery** | Docker (multi-stage), gunicorn, GitHub Actions, Render | Container image, production server, CI, hosting |
 
-### 2. Environment Setup
-Create a `.env` file in the project root:
+## Quick start
 
-```env
-PORT=8000
-OPENROUTER_API_KEY=your_openrouter_api_key_here
-MAX_REPO_FILES=8000
-CLONE_TIMEOUT_SEC=120
-```
-
-### 3. Backend Setup & Run
+### Option A: Docker (one command)
 
 ```bash
-# Install Python dependencies
+git clone https://github.com/Atharvchaskar008/Argus.git
+cd Argus
+cp .env.example .env          # optional: add OPENROUTER_API_KEY for LLM features
+docker build -t argus .
+docker run --rm -p 8000:8000 --env-file .env -e FRONTEND_URL=http://localhost:8000 argus
+```
+
+Open <http://localhost:8000> and paste a repository URL, for example `https://github.com/pallets/itsdangerous`.
+
+### Option B: Local development
+
+Requires Python 3.10+, Node.js 20.19+ (22 LTS recommended) and Git.
+
+```bash
+# Backend: http://localhost:8000
+python -m venv .venv
+source .venv/bin/activate      # Windows: .venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-
-# Launch backend API server
+cp .env.example .env
 python -m backend.server
-```
-*Backend runs on `http://localhost:8000`.*
 
-### 4. Frontend Setup & Run
-
-```bash
-# Navigate to frontend
+# Frontend (second terminal): http://localhost:5173
 cd frontend
-
-# Install dependencies
-npm install
-
-# Start Vite dev server
+npm ci
 npm run dev
 ```
-*Frontend runs on `http://localhost:5173`.*
 
----
+On Windows, `./start.ps1` creates `.env`, installs dependencies and starts the backend.
 
-## 🧪 Running Tests
+> **No API keys?** Argus switches to heuristics-only mode automatically. Cloning, parsing, the dependency graph, blast radius, security rules and CVE lookups all work. Add an `OPENROUTER_API_KEY` to unlock AI architecture narratives, Q&A and fix suggestions.
+
+### Run the tests
 
 ```bash
-# Run unit & integration tests
-pytest tests/
+python -m pytest tests/ -q
+cd frontend && npm run build && npx eslint .
 ```
 
----
+## Configuration
 
-## 📄 License
+All settings are environment variables; see [.env.example](.env.example).
 
-MIT License. Built for developer productivity and repository transparency.
+| Variable | Default | Purpose |
+|---|---|---|
+| `OPENROUTER_API_KEY` | (empty) | Enables LLM features. Without it Argus runs heuristics-only. |
+| `OPENROUTER_DEFAULT_MODEL` | `google/gemini-2.5-flash` | Default model for every agent |
+| `GITHUB_TOKEN` | (empty) | Personal access token; raises GitHub API rate limits |
+| `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | (empty) | GitHub OAuth App for sign-in and private repos. Callback: `<server>/auth/github/callback` |
+| `FRONTEND_URL` | `http://localhost:5173` | Where OAuth redirects back to. On Render it defaults to the service URL. |
+| `SECRET_KEY` | random per run | Signs session cookies. Set a fixed value in production. |
+| `PORT` | `8000` | HTTP port |
+| `MAX_REPO_FILES` | `8000` | Largest repository (in source files) Argus will analyse |
+| `CLONE_TIMEOUT_SEC` | `120` | Timeout for the shallow clone |
+| `SESSION_MAX_AGE_HOURS` | `24` | How long analysis sessions are kept on disk |
 
-Was made for jackhacks global hackathon by Atharv Chaskar and Prathamesh patil 
+Built-in limits: the architecture prompt is capped at 16,000 input tokens and Q&A context at 20,000 characters. LLM responses are capped at 8,192 tokens. To analyse very large repositories, raise `MAX_REPO_FILES` (for example to `25000`) and `CLONE_TIMEOUT_SEC` (for example to `300`).
+
+## Deploy
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/Atharvchaskar008/Argus)
+
+The button reads [render.yaml](render.yaml) and creates a free Docker web service with a `/health` check and a generated `SECRET_KEY`. It prompts you for the optional secrets (`OPENROUTER_API_KEY`, `GITHUB_TOKEN`, OAuth credentials).
+
+The same [Dockerfile](Dockerfile) runs on any container host (Fly.io, Railway, Koyeb, Hugging Face Spaces, a VPS). Run a **single worker**: analysis sessions live in-process, and the image's gunicorn command already does this.
+
+## Project structure
+
+```text
+backend/    Flask API, LangGraph agents, analyzers, GitHub/OSV clients, LLM client
+frontend/   React + Vite single-page app
+tests/      pytest suite and a local health checker
+docs/       API reference, agent interaction flow, LLM setup
+```
+
+[CONTRIBUTING.md](CONTRIBUTING.md#project-structure) has a file-by-file map and explains where each kind of change goes.
+
+## Contributing
+
+Argus is a **Nexus Spring of Code 2026** project and we'd love your help, whatever your experience level.
+
+1. Browse issues labelled [`NSoC'26`](https://github.com/Atharvchaskar008/Argus/issues?q=is%3Aissue+is%3Aopen+label%3A%22NSoC%2726%22). Each has a difficulty label: `level1` (beginner), `level2` (intermediate) or `level3` (advanced).
+2. Comment to claim one and wait to be assigned.
+3. Fork, branch, code and open a PR that says `Closes #<issue>`.
+
+Read the [Contributing guide](CONTRIBUTING.md) for setup, conventions and recipes, and follow our [Code of Conduct](CODE_OF_CONDUCT.md). Found a vulnerability? See [SECURITY.md](SECURITY.md).
+
+## Roadmap
+
+- UI for repository comparison ([#24](https://github.com/Atharvchaskar008/Argus/issues/24)), report export ([#12](https://github.com/Atharvchaskar008/Argus/issues/12)) and fix approvals ([#25](https://github.com/Atharvchaskar008/Argus/issues/25)). The APIs already exist.
+- Import parsing for JavaScript/TypeScript ([#26](https://github.com/Atharvchaskar008/Argus/issues/26)), then more languages
+- CVE scanning for lock files and `pyproject.toml` ([#19](https://github.com/Atharvchaskar008/Argus/issues/19))
+- GitLab and Bitbucket support ([#27](https://github.com/Atharvchaskar008/Argus/issues/27))
+- Persistent session storage ([#28](https://github.com/Atharvchaskar008/Argus/issues/28)) and SARIF export for GitHub code scanning ([#23](https://github.com/Atharvchaskar008/Argus/issues/23))
+- Direct LLM providers and local models via Ollama ([#29](https://github.com/Atharvchaskar008/Argus/issues/29))
+
+See [all open NSoC'26 issues](https://github.com/Atharvchaskar008/Argus/issues?q=is%3Aissue+is%3Aopen+label%3A%22NSoC%2726%22) and pick one up!
+
+## Maintainers
+
+- **Atharv Chaskar** ([@Atharvchaskar008](https://github.com/Atharvchaskar008))
+- **Prathamesh Patil** ([@prathamesh-lang](https://github.com/prathamesh-lang))
+
+Argus started life as *RepoSense*, built for the JacHacks global hackathon.
+
+## License
+
+[MIT](LICENSE) © 2026 Atharv Chaskar and Prathamesh Patil

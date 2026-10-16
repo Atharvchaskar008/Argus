@@ -4,6 +4,7 @@ import { Send, Sparkles, AlertCircle } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { useRepo } from '../context/RepoContext';
 import ProviderSelector from './ProviderSelector';
+import { apiUrl } from '../lib/api';
 
 const EXAMPLES = [
   "Explain repository architecture",
@@ -31,7 +32,7 @@ export default function AskRepository() {
     setQuery(finalQuery);
 
     try {
-      const res = await fetch('http://localhost:8000/query', {
+      const res = await fetch(apiUrl('/query'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ session_id: session.id, query: finalQuery, model: selectedModel })

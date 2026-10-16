@@ -1,4 +1,4 @@
-# Agent Interaction Flow — RepoSense
+# Agent Interaction Flow — Argus
 
 ## Agent Lifecycle
 

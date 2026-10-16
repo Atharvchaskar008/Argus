@@ -1,0 +1,71 @@
+name: Bug report
+description: Something in Argus is broken or behaves unexpectedly.
+title: "bug: "
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! Please search [existing issues](https://github.com/Atharvchaskar008/Argus/issues) first.
+        **Security problems:** do not file them here, follow [SECURITY.md](https://github.com/Atharvchaskar008/Argus/blob/main/SECURITY.md).
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear description of the bug, including any error message.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Analyse https://github.com/owner/repo
+        2. Open the Architecture section
+        3. See error ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Frontend / UI
+        - Backend / API
+        - Security scanner
+        - Dependency graph / blast radius
+        - Architecture diagrams
+        - Repository Q&A / LLM
+        - GitHub OAuth
+        - Docker / deployment
+        - Not sure
+    validations:
+      required: true
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where did you run Argus?
+      options:
+        - Live demo
+        - Local (python + npm)
+        - Local Docker
+        - Self-hosted deployment
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshots
+      description: Backend console output, browser console errors or screenshots. Remove any API keys or tokens.
+      render: text
+  - type: input
+    id: env
+    attributes:
+      label: Environment
+      placeholder: "Windows 11, Python 3.12, Node 22, Chrome 141"
